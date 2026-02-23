@@ -7,9 +7,9 @@ LR35902 CPU の完全実装。
 エミュレーションの最重要部。
 
 ## ▼ 1.1 構造定義
-- [ ] `Registers` 構造体の定義  
-- [ ] `Flags`（Z/N/H/C）のビット操作  
-- [ ] 16bit レジスタペア（AF/BC/DE/HL）の get/set  
+- [x] `Registers` 構造体の定義  
+- [x] `Flags`（Z/N/H/C）のビット操作  
+- [x] 16bit レジスタペア（AF/BC/DE/HL）の get/set  
 
 ## ▼ 1.2 命令デコードの枠組み
 - [ ] 各 opcode のテーブルを定義（0x00〜0xFF）  
