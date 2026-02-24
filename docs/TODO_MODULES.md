@@ -12,9 +12,8 @@ LR35902 CPU の完全実装。
 - [x] 16bit レジスタペア（AF/BC/DE/HL）の get/set  
 
 ## ▼ 1.2 命令デコードの枠組み
-- [ ] 各 opcode のテーブルを定義（0x00〜0xFF）  
-- [ ] CB prefix 用テーブル（0x00〜0xFF）  
-- [ ] opcode → 関数ポインタ or クロージャ呼び出しを構築  
+- [x] 各 opcode のテーブルを定義（0x00〜0xFF）  
+- [x] CB prefix 用テーブル（0x00〜0xFF）  
 
 ## ▼ 1.3 命令実装（normal 命令）
 - [ ] 8bit LD 系  

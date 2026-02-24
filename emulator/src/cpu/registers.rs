@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #![allow(non_snake_case)]
 
-struct Registers {
+pub struct Registers {
     A: u8, F: u8,
     B: u8, C: u8,
     D: u8, E: u8,
