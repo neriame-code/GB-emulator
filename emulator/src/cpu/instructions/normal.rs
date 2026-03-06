@@ -71,8 +71,8 @@ impl Cpu {
                 12
             },
             0x22 => { // LD (HL+), A
-                let addr = self.registers.get_hl();
-                self.bus.write(addr.wrapping_add(1), self.registers.A);
+                self.bus.write(self.registers.get_hl(), self.registers.A);
+                self.registers.set_hl(self.registers.get_hl().wrapping_add(1));
                 8
             },
             0x23 => { },
@@ -83,8 +83,8 @@ impl Cpu {
             0x28 => { },
             0x29 => { },
             0x2A => { // LD A, (HL+)
-                let addr = self.registers.get_hl().wrapping_add(1);
-                self.registers.A = self.bus.read(addr); 
+                self.registers.A = self.bus.read(self.registers.get_hl());
+                self.registers.set_hl(self.registers.get_hl().wrapping_add(1)); 
                 8 
             },
             0x2B => { },
@@ -99,8 +99,8 @@ impl Cpu {
                 12
             },
             0x32 => { // LD (HL-), A
-                let addr = self.registers.get_hl();
-                self.bus.write(addr.wrapping_sub(1), self.registers.A);
+                self.bus.write(self.registers.get_hl(), self.registers.A);
+                self.registers.set_hl(self.registers.get_hl().wrapping_sub(1));
                 8
             },
             0x33 => { },
@@ -115,8 +115,8 @@ impl Cpu {
             0x38 => { },
             0x39 => { },
             0x3A => { // LD A, (HL-)
-                let addr = self.registers.get_hl().wrapping_sub(1); 
-                self.registers.A = self.bus.read(addr); 
+                self.registers.A = self.bus.read(self.registers.get_hl());
+                self.registers.set_hl(self.registers.get_hl().wrapping_sub(1)); 
                 8 
             },
             0x3B => { },
@@ -317,11 +317,23 @@ impl Cpu {
             0xBE => { },
             0xBF => { },
             0xC0 => { },
-            0xC1 => { },
+            0xC1 => { // POP BC
+                self.registers.C = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                self.registers.B = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                12
+            },
             0xC2 => { },
             0xC3 => { },
             0xC4 => { },
-            0xC5 => { },
+            0xC5 => { // PUSH BC
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, self.registers.B);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, self.registers.C);
+                16
+            },
             0xC6 => { },
             0xC7 => { },
             0xC8 => { },
@@ -333,11 +345,23 @@ impl Cpu {
             0xCE => { },
             0xCF => { },
             0xD0 => { },
-            0xD1 => { },
+            0xD1 => { // POP DE
+                self.registers.E = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                self.registers.D = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                12
+            },
             0xD2 => { },
             0xD3 => { },
             0xD4 => { },
-            0xD5 => { },
+            0xD5 => { // PUSH DE
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, self.registers.D);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, self.registers.E);
+                16
+            },
             0xD6 => { },
             0xD7 => { },
             0xD8 => { },
@@ -353,7 +377,13 @@ impl Cpu {
                 self.bus.write(addr, self.registers.A);
                 12
             },
-            0xE1 => { },
+            0xE1 => { // POP HL
+                self.registers.L = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                self.registers.H = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                12
+            },
             0xE2 => { // LDH (C), A
                 let addr = 0xFF00 | self.registers.C as u16;
                 self.bus.write(addr, self.registers.A);
@@ -361,7 +391,13 @@ impl Cpu {
             },
             0xE3 => { },
             0xE4 => { },
-            0xE5 => { },
+            0xE5 => { // PUSH HL
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, self.registers.H);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, self.registers.L);
+                16
+            },
             0xE6 => { },
             0xE7 => { },
             0xE8 => { },
@@ -381,7 +417,13 @@ impl Cpu {
                 self.registers.A = self.bus.read(addr);
                 12
             },
-            0xF1 => { },
+            0xF1 => { // POP AF
+                self.registers.F = self.bus.read(self.registers.SP) & 0xF0;
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                self.registers.A = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                12
+            },
             0xF2 => { // LD A, (C)
                 let addr = 0xFF00 | self.registers.C as u16;
                 self.registers.A = self.bus.read(addr);
@@ -389,7 +431,13 @@ impl Cpu {
             },
             0xF3 => { },
             0xF4 => { },
-            0xF5 => { },
+            0xF5 => { // PUSH AF
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, self.registers.A);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, self.registers.F);
+                16
+            },
             0xF6 => { },
             0xF7 => { },
             0xF8 => { // LD HL, SP+e
