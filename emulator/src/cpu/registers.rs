@@ -3,11 +3,11 @@
 #![allow(non_snake_case)]
 
 pub struct Registers {
-    A: u8, F: u8,
-    B: u8, C: u8,
-    D: u8, E: u8,
-    H: u8, L: u8,
-    SP: u16, PC: u16,
+    pub(crate) A:  u8,  pub(crate) F:  u8,
+    pub(crate) B:  u8,  pub(crate) C:  u8,
+    pub(crate) D:  u8,  pub(crate) E:  u8,
+    pub(crate) H:  u8,  pub(crate) L:  u8,
+    pub(crate) SP: u16, pub(crate) PC: u16,
 }
 
 #[repr(u8)]

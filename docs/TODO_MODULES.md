@@ -16,7 +16,7 @@ LR35902 CPU の完全実装。
 - [x] CB prefix 用テーブル（0x00〜0xFF）  
 
 ## ▼ 1.3 命令実装（normal 命令）
-- [ ] 8bit LD 系  
+- [x] 8bit LD 系  
 - [ ] 16bit LD 系  
 - [ ] INC/DEC  
 - [ ] ADD/ADC/SUB/SBC  
