@@ -1,10 +1,14 @@
-use crate::cpu::Cpu;
+use crate::cpu::{Cpu, registers::Flag};
 
 impl Cpu {
     pub fn execute(&mut self, opcode: u8) -> u8 {
         match opcode {
             0x00 => { },
-            0x01 => { },
+            0x01 => { // LD BC, nn
+                let value = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                self.registers.set_bc(value);
+                12
+            },
             0x02 => { // LD (BC), A
                 let addr = self.registers.get_bc();
                 self.bus.write(addr, self.registers.A);
@@ -15,7 +19,12 @@ impl Cpu {
             0x05 => { },
             0x06 => { self.registers.B = self.fetch_byte(); 8 }, // LD B, n
             0x07 => { },
-            0x08 => { },
+            0x08 => { // LD (nn), SP
+                let addr = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                self.bus.write(addr, (self.registers.SP & 0xFF) as u8);
+                self.bus.write(addr.wrapping_add(1), (self.registers.SP >> 8 & 0xFF) as u8);
+                20
+            },
             0x09 => { },
             0x0A => { // LD A, (BC)
                 let addr = self.registers.get_bc();
@@ -28,7 +37,11 @@ impl Cpu {
             0x0E => { self.registers.C = self.fetch_byte(); 8 }, // LD C, n
             0x0F => { },
             0x10 => { },
-            0x11 => { },
+            0x11 => { // LD DE, nn
+                let value = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                self.registers.set_de(value);
+                12
+            },
             0x12 => { // LD (DE), A
                 let addr = self.registers.get_de();
                 self.bus.write(addr, self.registers.A);
@@ -52,7 +65,11 @@ impl Cpu {
             0x1E => { self.registers.E = self.fetch_byte(); 8 }, // LD E, n
             0x1F => { },
             0x20 => { },
-            0x21 => { },
+            0x21 => { // LD HL, nn
+                let value = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                self.registers.set_hl(value);
+                12
+            },
             0x22 => { // LD (HL+), A
                 let addr = self.registers.get_hl();
                 self.bus.write(addr.wrapping_add(1), self.registers.A);
@@ -76,7 +93,11 @@ impl Cpu {
             0x2E => { self.registers.L = self.fetch_byte(); 8 }, // LD L, n
             0x2F => { },
             0x30 => { },
-            0x31 => { },
+            0x31 => { // LD SP, nn
+                let value = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                self.registers.SP = value;
+                12
+            },
             0x32 => { // LD (HL-), A
                 let addr = self.registers.get_hl();
                 self.bus.write(addr.wrapping_sub(1), self.registers.A);
@@ -346,7 +367,7 @@ impl Cpu {
             0xE8 => { },
             0xE9 => { },
             0xEA => { // LD (nn), A
-                let addr = ((self.fetch_byte() as u16) << 8) | self.fetch_byte() as u16;
+                let addr = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
                 self.bus.write(addr, self.registers.A);
                 16
             },
@@ -371,10 +392,21 @@ impl Cpu {
             0xF5 => { },
             0xF6 => { },
             0xF7 => { },
-            0xF8 => { },
-            0xF9 => { },
+            0xF8 => { // LD HL, SP+e
+                // 計算処理
+                let sp = self.registers.SP;
+                let e = self.fetch_byte() as i8 as i16 as u16;
+                let value = sp.wrapping_add(e);
+                self.registers.set_hl(value);
+                // フラグの更新
+                let h = (sp & 0x0F) + (e as u16 & 0x0F) > 0x0F;
+                let c = (sp & 0xFF) + (e as u16 & 0xFF) > 0xFF;
+                self.registers.update_flags(Some(false), Some(false), Some(h), Some(c));
+                12
+            },
+            0xF9 => { self.registers.SP = self.registers.get_hl(); 8 }, // LD SP, HL
             0xFA => { // LD A, (nn)
-                let addr = ((self.fetch_byte() as u16) << 8) | self.fetch_byte() as u16;
+                let addr = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
                 self.registers.A = self.bus.read(addr); 
                 16
             },
