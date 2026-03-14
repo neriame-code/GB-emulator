@@ -14,9 +14,21 @@ impl Cpu {
                 self.bus.write(addr, self.registers.A);
                 8
             },
-            0x03 => { },
-            0x04 => { },
-            0x05 => { },
+            0x03 => { self.registers.set_bc(self.registers.get_bc().wrapping_add(1)); 8 }, // INC BC
+            0x04 => { // INC B
+                let result  = self.registers.B.wrapping_add(1);
+                let h = self.registers.B & 0xF == 0xF;
+                self.registers.B = result;
+                self.registers.update_flags(Some(result==0), Some(false), Some(h), None);
+                4 
+            },
+            0x05 => { // DEC B
+                let result  = self.registers.B.wrapping_sub(1);
+                let h = self.registers.B & 0xF == 0x0;
+                self.registers.B = result;
+                self.registers.update_flags(Some(result==0), Some(true), Some(h), None);
+                4 
+            },
             0x06 => { self.registers.B = self.fetch_byte(); 8 }, // LD B, n
             0x07 => { },
             0x08 => { // LD (nn), SP
@@ -31,9 +43,21 @@ impl Cpu {
                 self.registers.A = self.bus.read(addr);
                 8
             },
-            0x0B => { },
-            0x0C => { },
-            0x0D => { },
+            0x0B => { self.registers.set_bc(self.registers.get_bc().wrapping_sub(1)); 8 }, // DEC BC
+            0x0C => { // INC C
+                let result  = self.registers.C.wrapping_add(1);
+                let h = self.registers.C & 0xF == 0xF;
+                self.registers.C = result;
+                self.registers.update_flags(Some(result==0), Some(false), Some(h), None);
+                4 
+            },
+            0x0D => { // DEC C
+                let result  = self.registers.C.wrapping_sub(1);
+                let h = self.registers.C & 0xF == 0x0;
+                self.registers.C = result;
+                self.registers.update_flags(Some(result==0), Some(true), Some(h), None);
+                4 
+            },
             0x0E => { self.registers.C = self.fetch_byte(); 8 }, // LD C, n
             0x0F => { },
             0x10 => { },
@@ -47,9 +71,21 @@ impl Cpu {
                 self.bus.write(addr, self.registers.A);
                 8
             },
-            0x13 => { },
-            0x14 => { },
-            0x15 => { },
+            0x13 => { self.registers.set_de(self.registers.get_de().wrapping_add(1)); 8 }, // INC DE
+            0x14 => { // INC D
+                let result  = self.registers.D.wrapping_add(1);
+                let h = self.registers.D & 0xF == 0xF;
+                self.registers.D = result;
+                self.registers.update_flags(Some(result==0), Some(false), Some(h), None);
+                4 
+            },
+            0x15 => { // DEC D
+                let result  = self.registers.D.wrapping_sub(1);
+                let h = self.registers.D & 0xF == 0x0;
+                self.registers.D = result;
+                self.registers.update_flags(Some(result==0), Some(true), Some(h), None);
+                4 
+            },
             0x16 => { self.registers.D = self.fetch_byte(); 8 }, // LD D, n
             0x17 => { },
             0x18 => { },
@@ -59,9 +95,21 @@ impl Cpu {
                 self.registers.A = self.bus.read(addr);
                 8 
             },
-            0x1B => { },
-            0x1C => { },
-            0x1D => { },
+            0x1B => { self.registers.set_de(self.registers.get_de().wrapping_sub(1)); 8 }, // DEC DE
+            0x1C => { // INC E
+                let result  = self.registers.E.wrapping_add(1);
+                let h = self.registers.E & 0xF == 0xF;
+                self.registers.E = result;
+                self.registers.update_flags(Some(result==0), Some(false), Some(h), None);
+                4 
+            },
+            0x1D => { // DEC E
+                let result  = self.registers.E.wrapping_sub(1);
+                let h = self.registers.E & 0xF == 0x0;
+                self.registers.E = result;
+                self.registers.update_flags(Some(result==0), Some(true), Some(h), None);
+                4 
+            },
             0x1E => { self.registers.E = self.fetch_byte(); 8 }, // LD E, n
             0x1F => { },
             0x20 => { },
@@ -75,9 +123,21 @@ impl Cpu {
                 self.registers.set_hl(self.registers.get_hl().wrapping_add(1));
                 8
             },
-            0x23 => { },
-            0x24 => { },
-            0x25 => { },
+            0x23 => { self.registers.set_hl(self.registers.get_hl().wrapping_add(1)); 8 }, // INC HL
+            0x24 => { // INC H
+                let result  = self.registers.H.wrapping_add(1);
+                let h = self.registers.H & 0xF == 0xF;
+                self.registers.H = result;
+                self.registers.update_flags(Some(result==0), Some(false), Some(h), None);
+                4 
+            },
+            0x25 => { // DEC H
+                let result  = self.registers.H.wrapping_sub(1);
+                let h = self.registers.H & 0xF == 0x0;
+                self.registers.H = result;
+                self.registers.update_flags(Some(result==0), Some(true), Some(h), None);
+                4 
+            },
             0x26 => { self.registers.H = self.fetch_byte(); 8 }, // LD H, n
             0x27 => { },
             0x28 => { },
@@ -87,9 +147,21 @@ impl Cpu {
                 self.registers.set_hl(self.registers.get_hl().wrapping_add(1)); 
                 8 
             },
-            0x2B => { },
-            0x2C => { },
-            0x2D => { },
+            0x2B => { self.registers.set_hl(self.registers.get_hl().wrapping_sub(1)); 8 }, // DEC HL
+            0x2C => { // INC L
+                let result  = self.registers.L.wrapping_add(1);
+                let h = self.registers.L & 0xF == 0xF;
+                self.registers.L = result;
+                self.registers.update_flags(Some(result==0), Some(false), Some(h), None);
+                4 
+            },
+            0x2D => { // DEC L
+                let result  = self.registers.L.wrapping_sub(1);
+                let h = self.registers.L & 0xF == 0x0;
+                self.registers.L = result;
+                self.registers.update_flags(Some(result==0), Some(true), Some(h), None);
+                4 
+            },
             0x2E => { self.registers.L = self.fetch_byte(); 8 }, // LD L, n
             0x2F => { },
             0x30 => { },
@@ -103,9 +175,23 @@ impl Cpu {
                 self.registers.set_hl(self.registers.get_hl().wrapping_sub(1));
                 8
             },
-            0x33 => { },
-            0x34 => { },
-            0x35 => { },
+            0x33 => { self.registers.SP = self.registers.SP.wrapping_add(1); 8 }, // INC SP
+            0x34 => { // INC (HL)
+                let old_val = self.bus.read(self.registers.get_hl());
+                let result  = old_val.wrapping_add(1);
+                let h = old_val & 0xF == 0xF;
+                self.bus.write(self.registers.get_hl(), result);
+                self.registers.update_flags(Some(result==0), Some(false), Some(h), None);
+                12
+            },
+            0x35 => { // DEC (HL)
+                let old_val = self.bus.read(self.registers.get_hl());
+                let result  = old_val.wrapping_sub(1);
+                let h = old_val & 0xF == 0x0;
+                self.bus.write(self.registers.get_hl(), result);
+                self.registers.update_flags(Some(result==0), Some(true), Some(h), None);
+                12
+            },
             0x36 => { // LD (HL), n
                 let addr = self.registers.get_hl();
                 self.bus.write(addr, self.fetch_byte());
@@ -119,9 +205,21 @@ impl Cpu {
                 self.registers.set_hl(self.registers.get_hl().wrapping_sub(1)); 
                 8 
             },
-            0x3B => { },
-            0x3C => { },
-            0x3D => { },
+            0x3B => { self.registers.SP = self.registers.SP.wrapping_sub(1); 8 }, // DEC SP
+            0x3C => { // INC A
+                let result  = self.registers.A.wrapping_add(1);
+                let h = self.registers.A & 0xF == 0xF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result==0), Some(false), Some(h), None);
+                4 
+            },
+            0x3D => { // DEC A
+                let result  = self.registers.A.wrapping_sub(1);
+                let h = self.registers.A & 0xF == 0x0;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result==0), Some(true), Some(h), None);
+                4 
+            },
             0x3E => { self.registers.A = self.fetch_byte(); 8 }, // LD A, n
             0x3F => { },
 

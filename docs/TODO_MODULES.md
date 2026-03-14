@@ -18,7 +18,7 @@ LR35902 CPU の完全実装。
 ## ▼ 1.3 命令実装（normal 命令）
 - [x] 8bit LD 系  
 - [x] 16bit LD 系  
-- [ ] INC/DEC  
+- [x] INC/DEC  
 - [ ] ADD/ADC/SUB/SBC  
 - [ ] AND/OR/XOR/CP  
 - [ ] JP/JR  
