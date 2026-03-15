@@ -1,5 +1,3 @@
-use std::result;
-
 use crate::cpu::{Cpu, registers::Flag};
 
 impl Cpu {
@@ -952,7 +950,18 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
                 4
             },
-            0xC0 => { },
+            0xC0 => { // RET NZ
+                if !self.registers.get_flag(Flag::Z) {
+                    let lo = self.bus.read(self.registers.SP);
+                    self.registers.SP = self.registers.SP.wrapping_add(1);
+                    let hi = self.bus.read(self.registers.SP);
+                    self.registers.SP = self.registers.SP.wrapping_add(1);
+                    self.registers.PC = ((hi as u16) << 8) | (lo as u16);
+                    20
+                }else {
+                    8
+                }
+            },
             0xC1 => { // POP BC
                 self.registers.C = self.bus.read(self.registers.SP);
                 self.registers.SP = self.registers.SP.wrapping_add(1);
@@ -969,7 +978,22 @@ impl Cpu {
                 }
             },
             0xC3 => { self.registers.PC = self.fetch_word(); 16 }, // JP nn
-            0xC4 => { },
+            0xC4 => { // CALL NZ, nn
+                let nn = self.fetch_word();
+                if !self.registers.get_flag(Flag::Z) {
+                    let ret_addr = self.registers.PC;
+                    let hi = (ret_addr >> 8 & 0xFF) as u8;
+                    let lo = (ret_addr & 0xFF) as u8;
+                    self.registers.SP = self.registers.SP.wrapping_sub(1);
+                    self.bus.write(self.registers.SP, hi);
+                    self.registers.SP = self.registers.SP.wrapping_sub(1);
+                    self.bus.write(self.registers.SP, lo);
+                    self.registers.PC = nn;
+                    24
+                }else {
+                    12
+                }
+            },
             0xC5 => { // PUSH BC
                 self.registers.SP = self.registers.SP.wrapping_sub(1);
                 self.bus.write(self.registers.SP, self.registers.B);
@@ -987,8 +1011,26 @@ impl Cpu {
                 8
             },
             0xC7 => { },
-            0xC8 => { },
-            0xC9 => { },
+            0xC8 => { // RET Z
+                if self.registers.get_flag(Flag::Z) {
+                    let lo = self.bus.read(self.registers.SP);
+                    self.registers.SP = self.registers.SP.wrapping_add(1);
+                    let hi = self.bus.read(self.registers.SP);
+                    self.registers.SP = self.registers.SP.wrapping_add(1);
+                    self.registers.PC = ((hi as u16) << 8) | (lo as u16);
+                    20
+                }else {
+                    8
+                }
+            },
+            0xC9 => { // RET
+                let lo = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                let hi = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                self.registers.PC = ((hi as u16) << 8) | (lo as u16);
+                16
+            },
             0xCA => { // JP Z, nn
                 if self.registers.get_flag(Flag::Z) {
                     self.registers.PC = self.fetch_word();
@@ -998,8 +1040,35 @@ impl Cpu {
                 }
             },
             0xCB => { }, // cbデコーダはここで呼ぶ
-            0xCC => { },
-            0xCD => { },
+            0xCC => { // CALL Z, nn
+                let nn = self.fetch_word();
+                if self.registers.get_flag(Flag::Z) {
+                    let ret_addr = self.registers.PC;
+                    let hi = (ret_addr >> 8 & 0xFF) as u8;
+                    let lo = (ret_addr & 0xFF) as u8;
+                    self.registers.SP = self.registers.SP.wrapping_sub(1);
+                    self.bus.write(self.registers.SP, hi);
+                    self.registers.SP = self.registers.SP.wrapping_sub(1);
+                    self.bus.write(self.registers.SP, lo);
+                    self.registers.PC = nn;
+                    24
+                }else {
+                    12
+                }
+            },
+            0xCD => { // CALL nn
+                let nn = self.fetch_word(); // PCがCALL命令の次の命令を指す
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                // PCをリターンアドレスとしてスタックに積む
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = nn; // PCをnnに書き換えてジャンプ
+                24
+            },
             0xCE => { // ADC A, n
                 let r = self.fetch_byte();
                 let carry = self.registers.get_flag(Flag::C) as u8;
@@ -1011,7 +1080,18 @@ impl Cpu {
                 8
             },
             0xCF => { },
-            0xD0 => { },
+            0xD0 => { // RET NC
+                if !self.registers.get_flag(Flag::C) {
+                    let lo = self.bus.read(self.registers.SP);
+                    self.registers.SP = self.registers.SP.wrapping_add(1);
+                    let hi = self.bus.read(self.registers.SP);
+                    self.registers.SP = self.registers.SP.wrapping_add(1);
+                    self.registers.PC = ((hi as u16) << 8) | (lo as u16);
+                    20
+                }else {
+                    8
+                }
+            },
             0xD1 => { // POP DE
                 self.registers.E = self.bus.read(self.registers.SP);
                 self.registers.SP = self.registers.SP.wrapping_add(1);
@@ -1028,7 +1108,22 @@ impl Cpu {
                 }
             },
             0xD3 => { },
-            0xD4 => { },
+            0xD4 => { // CALL NC, nn
+                let nn = self.fetch_word();
+                if !self.registers.get_flag(Flag::C) {
+                    let ret_addr = self.registers.PC;
+                    let hi = (ret_addr >> 8 & 0xFF) as u8;
+                    let lo = (ret_addr & 0xFF) as u8;
+                    self.registers.SP = self.registers.SP.wrapping_sub(1);
+                    self.bus.write(self.registers.SP, hi);
+                    self.registers.SP = self.registers.SP.wrapping_sub(1);
+                    self.bus.write(self.registers.SP, lo);
+                    self.registers.PC = nn;
+                    24
+                }else {
+                    12
+                }
+            },
             0xD5 => { // PUSH DE
                 self.registers.SP = self.registers.SP.wrapping_sub(1);
                 self.bus.write(self.registers.SP, self.registers.D);
@@ -1046,8 +1141,27 @@ impl Cpu {
                 8
             },
             0xD7 => { },
-            0xD8 => { },
-            0xD9 => { },
+            0xD8 => { // RET C
+                if self.registers.get_flag(Flag::C) {
+                    let lo = self.bus.read(self.registers.SP);
+                    self.registers.SP = self.registers.SP.wrapping_add(1);
+                    let hi = self.bus.read(self.registers.SP);
+                    self.registers.SP = self.registers.SP.wrapping_add(1);
+                    self.registers.PC = ((hi as u16) << 8) | (lo as u16);
+                    20
+                }else {
+                    8
+                }
+            },
+            0xD9 => { // RETI
+                let lo = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                let hi = self.bus.read(self.registers.SP);
+                self.registers.SP = self.registers.SP.wrapping_add(1);
+                self.registers.PC = ((hi as u16) << 8) | (lo as u16);
+                self.ime = true;
+                16
+            },
             0xDA => { // JP C, nn
                 if self.registers.get_flag(Flag::C) {
                     self.registers.PC = self.fetch_word();
@@ -1057,7 +1171,22 @@ impl Cpu {
                 }
             },
             0xDB => { },
-            0xDC => { },
+            0xDC => { // CALL C, nn
+                let nn = self.fetch_word();
+                if self.registers.get_flag(Flag::C) {
+                    let ret_addr = self.registers.PC;
+                    let hi = (ret_addr >> 8 & 0xFF) as u8;
+                    let lo = (ret_addr & 0xFF) as u8;
+                    self.registers.SP = self.registers.SP.wrapping_sub(1);
+                    self.bus.write(self.registers.SP, hi);
+                    self.registers.SP = self.registers.SP.wrapping_sub(1);
+                    self.bus.write(self.registers.SP, lo);
+                    self.registers.PC = nn;
+                    24
+                }else {
+                    12
+                }
+            },
             0xDD => { },
             0xDE => { // SBC A, n
                 let r = self.fetch_byte();

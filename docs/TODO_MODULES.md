@@ -22,8 +22,8 @@ LR35902 CPU の完全実装。
 - [x] ADD/ADC/SUB/SBC  
 - [x] AND/OR/XOR/CP  
 - [x] JP/JR  
-- [ ] CALL/RET  
-- [ ] PUSH/POP  
+- [x] CALL/RET  
+- [x] PUSH/POP  
 - [ ] RST  
 
 ## ▼ 1.4 CB-prefix 命令
