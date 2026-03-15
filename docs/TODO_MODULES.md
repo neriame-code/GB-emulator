@@ -21,7 +21,7 @@ LR35902 CPU の完全実装。
 - [x] INC/DEC  
 - [x] ADD/ADC/SUB/SBC  
 - [x] AND/OR/XOR/CP  
-- [ ] JP/JR  
+- [x] JP/JR  
 - [ ] CALL/RET  
 - [ ] PUSH/POP  
 - [ ] RST  

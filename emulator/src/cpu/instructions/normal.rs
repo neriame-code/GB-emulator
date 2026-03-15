@@ -7,7 +7,7 @@ impl Cpu {
         match opcode {
             0x00 => { },
             0x01 => { // LD BC, nn
-                let value = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                let value = self.fetch_word();
                 self.registers.set_bc(value);
                 12
             },
@@ -34,7 +34,7 @@ impl Cpu {
             0x06 => { self.registers.B = self.fetch_byte(); 8 }, // LD B, n
             0x07 => { },
             0x08 => { // LD (nn), SP
-                let addr = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                let addr = self.fetch_word();
                 self.bus.write(addr, (self.registers.SP & 0xFF) as u8);
                 self.bus.write(addr.wrapping_add(1), (self.registers.SP >> 8 & 0xFF) as u8);
                 20
@@ -71,7 +71,7 @@ impl Cpu {
             0x0F => { },
             0x10 => { },
             0x11 => { // LD DE, nn
-                let value = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                let value = self.fetch_word();
                 self.registers.set_de(value);
                 12
             },
@@ -97,7 +97,11 @@ impl Cpu {
             },
             0x16 => { self.registers.D = self.fetch_byte(); 8 }, // LD D, n
             0x17 => { },
-            0x18 => { },
+            0x18 => { // JR e
+                let e = self.fetch_byte() as i8 as i16 as u16;
+                self.registers.PC = self.registers.PC.wrapping_add(e);
+                12
+            },
             0x19 => { // ADD HL, DE
                 let r = self.registers.get_de();
                 let h = (self.registers.get_hl() & 0xFFF) + (r & 0xFFF) > 0xFFF;
@@ -128,9 +132,17 @@ impl Cpu {
             },
             0x1E => { self.registers.E = self.fetch_byte(); 8 }, // LD E, n
             0x1F => { },
-            0x20 => { },
+            0x20 => { // JP NZ, e
+                let e = self.fetch_byte() as i8 as i16 as u16;
+                if !self.registers.get_flag(Flag::Z) {
+                    self.registers.PC = self.registers.PC.wrapping_add(e);
+                    12
+                }else {
+                    8
+                }
+            },
             0x21 => { // LD HL, nn
-                let value = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                let value = self.fetch_word();
                 self.registers.set_hl(value);
                 12
             },
@@ -156,7 +168,15 @@ impl Cpu {
             },
             0x26 => { self.registers.H = self.fetch_byte(); 8 }, // LD H, n
             0x27 => { },
-            0x28 => { },
+            0x28 => { // JP Z, e
+                let e = self.fetch_byte() as i8 as i16 as u16;
+                if self.registers.get_flag(Flag::Z) {
+                    self.registers.PC = self.registers.PC.wrapping_add(e);
+                    12
+                }else {
+                    8
+                }
+            },
             0x29 => { // ADD HL, HL
                 let r = self.registers.get_hl();
                 let h = (self.registers.get_hl() & 0xFFF) + (r & 0xFFF) > 0xFFF;
@@ -187,9 +207,17 @@ impl Cpu {
             },
             0x2E => { self.registers.L = self.fetch_byte(); 8 }, // LD L, n
             0x2F => { },
-            0x30 => { },
+            0x30 => { // JP NC, e
+                let e = self.fetch_byte() as i8 as i16 as u16;
+                if !self.registers.get_flag(Flag::C) {
+                    self.registers.PC = self.registers.PC.wrapping_add(e);
+                    12
+                }else {
+                    8
+                }
+            },
             0x31 => { // LD SP, nn
-                let value = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                let value = self.fetch_word();
                 self.registers.SP = value;
                 12
             },
@@ -221,7 +249,15 @@ impl Cpu {
                 12
             },
             0x37 => { },
-            0x38 => { },
+            0x38 => { // JP C, e
+                let e = self.fetch_byte() as i8 as i16 as u16;
+                if self.registers.get_flag(Flag::C) {
+                    self.registers.PC = self.registers.PC.wrapping_add(e);
+                    12
+                }else {
+                    8
+                }
+            },
             0x39 => { // ADD HL, SP
                 let r = self.registers.SP;
                 let h = (self.registers.get_hl() & 0xFFF) + (r & 0xFFF) > 0xFFF;
@@ -924,8 +960,15 @@ impl Cpu {
                 self.registers.SP = self.registers.SP.wrapping_add(1);
                 12
             },
-            0xC2 => { },
-            0xC3 => { },
+            0xC2 => { // JP NZ, nn
+                if !self.registers.get_flag(Flag::Z) {
+                    self.registers.PC = self.fetch_word();
+                    16
+                }else {
+                    12
+                }
+            },
+            0xC3 => { self.registers.PC = self.fetch_word(); 16 }, // JP nn
             0xC4 => { },
             0xC5 => { // PUSH BC
                 self.registers.SP = self.registers.SP.wrapping_sub(1);
@@ -946,7 +989,14 @@ impl Cpu {
             0xC7 => { },
             0xC8 => { },
             0xC9 => { },
-            0xCA => { },
+            0xCA => { // JP Z, nn
+                if self.registers.get_flag(Flag::Z) {
+                    self.registers.PC = self.fetch_word();
+                    16
+                }else {
+                    12
+                }
+            },
             0xCB => { }, // cbデコーダはここで呼ぶ
             0xCC => { },
             0xCD => { },
@@ -969,7 +1019,14 @@ impl Cpu {
                 self.registers.SP = self.registers.SP.wrapping_add(1);
                 12
             },
-            0xD2 => { },
+            0xD2 => { // JP NC, nn
+                if !self.registers.get_flag(Flag::C) {
+                    self.registers.PC = self.fetch_word();
+                    16
+                }else {
+                    12
+                }
+            },
             0xD3 => { },
             0xD4 => { },
             0xD5 => { // PUSH DE
@@ -991,7 +1048,14 @@ impl Cpu {
             0xD7 => { },
             0xD8 => { },
             0xD9 => { },
-            0xDA => { },
+            0xDA => { // JP C, nn
+                if self.registers.get_flag(Flag::C) {
+                    self.registers.PC = self.fetch_word();
+                    16
+                }else {
+                    12
+                }
+            },
             0xDB => { },
             0xDC => { },
             0xDD => { },
@@ -1048,9 +1112,9 @@ impl Cpu {
                 self.registers.update_flags(Some(false), Some(false), Some(h), Some(c));
                 16
             },
-            0xE9 => { },
+            0xE9 => { self.registers.PC = self.registers.get_hl(); 4 }, // JP (HL)
             0xEA => { // LD (nn), A
-                let addr = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                let addr = self.fetch_word;
                 self.bus.write(addr, self.registers.A);
                 16
             },
@@ -1109,7 +1173,7 @@ impl Cpu {
             },
             0xF9 => { self.registers.SP = self.registers.get_hl(); 8 }, // LD SP, HL
             0xFA => { // LD A, (nn)
-                let addr = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
+                let addr = self.fetch_word();
                 self.registers.A = self.bus.read(addr); 
                 16
             },
