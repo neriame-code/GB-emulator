@@ -1,3 +1,5 @@
+use std::result;
+
 use crate::cpu::{Cpu, registers::Flag};
 
 impl Cpu {
@@ -37,7 +39,14 @@ impl Cpu {
                 self.bus.write(addr.wrapping_add(1), (self.registers.SP >> 8 & 0xFF) as u8);
                 20
             },
-            0x09 => { },
+            0x09 => { // ADD HL, BC
+                let r = self.registers.get_bc();
+                let h = (self.registers.get_hl() & 0xFFF) + (r & 0xFFF) > 0xFFF;
+                let c = (self.registers.get_hl() as u32) + (r as u32) > 0xFFFF;
+                self.registers.set_hl(self.registers.get_hl().wrapping_add(r));
+                self.registers.update_flags(None, Some(false), Some(h), Some(c));
+                8
+            },
             0x0A => { // LD A, (BC)
                 let addr = self.registers.get_bc();
                 self.registers.A = self.bus.read(addr);
@@ -89,7 +98,14 @@ impl Cpu {
             0x16 => { self.registers.D = self.fetch_byte(); 8 }, // LD D, n
             0x17 => { },
             0x18 => { },
-            0x19 => { },
+            0x19 => { // ADD HL, DE
+                let r = self.registers.get_de();
+                let h = (self.registers.get_hl() & 0xFFF) + (r & 0xFFF) > 0xFFF;
+                let c = (self.registers.get_hl() as u32) + (r as u32) > 0xFFFF;
+                self.registers.set_hl(self.registers.get_hl().wrapping_add(r));
+                self.registers.update_flags(None, Some(false), Some(h), Some(c));
+                8
+            },
             0x1A => { // LD A, (DE)
                 let addr = self.registers.get_de();
                 self.registers.A = self.bus.read(addr);
@@ -141,7 +157,14 @@ impl Cpu {
             0x26 => { self.registers.H = self.fetch_byte(); 8 }, // LD H, n
             0x27 => { },
             0x28 => { },
-            0x29 => { },
+            0x29 => { // ADD HL, HL
+                let r = self.registers.get_hl();
+                let h = (self.registers.get_hl() & 0xFFF) + (r & 0xFFF) > 0xFFF;
+                let c = (self.registers.get_hl() as u32) + (r as u32) > 0xFFFF;
+                self.registers.set_hl(self.registers.get_hl().wrapping_add(r));
+                self.registers.update_flags(None, Some(false), Some(h), Some(c));
+                8
+            },
             0x2A => { // LD A, (HL+)
                 self.registers.A = self.bus.read(self.registers.get_hl());
                 self.registers.set_hl(self.registers.get_hl().wrapping_add(1)); 
@@ -199,7 +222,14 @@ impl Cpu {
             },
             0x37 => { },
             0x38 => { },
-            0x39 => { },
+            0x39 => { // ADD HL, SP
+                let r = self.registers.SP;
+                let h = (self.registers.get_hl() & 0xFFF) + (r & 0xFFF) > 0xFFF;
+                let c = (self.registers.get_hl() as u32) + (r as u32) > 0xFFFF;
+                self.registers.set_hl(self.registers.get_hl().wrapping_add(r));
+                self.registers.update_flags(None, Some(false), Some(h), Some(c));
+                8
+            },
             0x3A => { // LD A, (HL-)
                 self.registers.A = self.bus.read(self.registers.get_hl());
                 self.registers.set_hl(self.registers.get_hl().wrapping_sub(1)); 
@@ -350,38 +380,310 @@ impl Cpu {
             },
             0x7F => { self.registers.A = self.registers.A; 4 }, // 実質的にはNOP
 
-            0x80 => { },
-            0x81 => { },
-            0x82 => { },
-            0x83 => { },
-            0x84 => { },
-            0x85 => { },
-            0x86 => { },
-            0x87 => { },
-            0x88 => { },
-            0x89 => { },
-            0x8A => { },
-            0x8B => { },
-            0x8C => { },
-            0x8D => { },
-            0x8E => { },
-            0x8F => { },
-            0x90 => { },
-            0x91 => { },
-            0x92 => { },
-            0x93 => { },
-            0x94 => { },
-            0x95 => { },
-            0x96 => { },
-            0x97 => { },
-            0x98 => { },
-            0x99 => { },
-            0x9A => { },
-            0x9B => { },
-            0x9C => { },
-            0x9D => { },
-            0x9E => { },
-            0x9F => { },
+            0x80 => { // ADD A, B
+                let r = self.registers.B;
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x81 => { // ADD A, C
+                let r = self.registers.C;
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x82 => { // ADD A, D
+                let r = self.registers.D;
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x83 => { // ADD A, E
+                let r = self.registers.E;
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x84 => { // ADD A, H
+                let r = self.registers.H;
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x85 => { // ADD A, L
+                let r = self.registers.L;
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x86 => { // ADD A, (HL)
+                let r = self.bus.read(self.registers.get_hl());
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                8
+            },
+            0x87 => { // ADD A, A
+                let r = self.registers.A;
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x88 => { // ADC A, B
+                let r = self.registers.B;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x89 => { // ADC A, C
+                let r = self.registers.C;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x8A => { // ADC A, D
+                let r = self.registers.D;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x8B => { // ADC A, E
+                let r = self.registers.E;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x8C => { // ADC A, H
+                let r = self.registers.H;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x8D => { // ADC A, L
+                let r = self.registers.L;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x8E => { // ADC A, (HL)
+                let r = self.bus.read(self.registers.get_hl());
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                8
+            },
+            0x8F => { // ADC A, A
+                let r = self.registers.A;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                4
+            },
+            0x90 => { // SUB A, B
+                let r = self.registers.B;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x91 => { // SUB A, C
+                let r = self.registers.C;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x92 => { // SUB A, D
+                let r = self.registers.D;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x93 => { // SUB A, E
+                let r = self.registers.E;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x94 => { // SUB A, H
+                let r = self.registers.H;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x95 => { // SUB A, L
+                let r = self.registers.L;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x96 => { // SUB A, (HL)
+                let r = self.bus.read(self.registers.get_hl());
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                8
+            },
+            0x97 => { // SUB A, A
+                let r = self.registers.A;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x98 => { // SBC A, B
+                let r = self.registers.B;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x99 => { // SBC A, C
+                let r = self.registers.C;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x9A => { // SBC A, D
+                let r = self.registers.D;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x9B => { // SBC A, E
+                let r = self.registers.E;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x9C => { // SBC A, H
+                let r = self.registers.H;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x9D => { // SBC A, L
+                let r = self.registers.L;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0x9E => { // SBC A, (HL)
+                let r = self.bus.read(self.registers.get_hl());
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                8
+            },
+            0x9F => { // SBC A, A
+                let r = self.registers.A;
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
             0xA0 => { },
             0xA1 => { },
             0xA2 => { },
@@ -432,7 +734,15 @@ impl Cpu {
                 self.bus.write(self.registers.SP, self.registers.C);
                 16
             },
-            0xC6 => { },
+            0xC6 => { // ADD A, n
+                let r = self.fetch_byte();
+                let result = self.registers.A.wrapping_add(r);
+                let h = (self.registers.A & 0xF) + (r & 0xF) > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                8
+            },
             0xC7 => { },
             0xC8 => { },
             0xC9 => { },
@@ -440,7 +750,16 @@ impl Cpu {
             0xCB => { }, // cbデコーダはここで呼ぶ
             0xCC => { },
             0xCD => { },
-            0xCE => { },
+            0xCE => { // ADC A, n
+                let r = self.fetch_byte();
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_add(r).wrapping_add(carry);
+                let h = (self.registers.A & 0xF) + (r & 0xF) + carry > 0xF;
+                let c = (self.registers.A as u16) + (r as u16) + (carry as u16) > 0xFF;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
+                8
+            },
             0xCF => { },
             0xD0 => { },
             0xD1 => { // POP DE
@@ -460,7 +779,15 @@ impl Cpu {
                 self.bus.write(self.registers.SP, self.registers.E);
                 16
             },
-            0xD6 => { },
+            0xD6 => { // SUB A, n
+                let r = self.fetch_byte();
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                8
+            },
             0xD7 => { },
             0xD8 => { },
             0xD9 => { },
@@ -468,7 +795,16 @@ impl Cpu {
             0xDB => { },
             0xDC => { },
             0xDD => { },
-            0xDE => { },
+            0xDE => { // SBC A, n
+                let r = self.fetch_byte();
+                let carry = self.registers.get_flag(Flag::C) as u8;
+                let result = self.registers.A.wrapping_sub(r).wrapping_sub(carry);
+                let h = (self.registers.A & 0xF) < (r & 0xF) + carry; // 加算によるオーバーフロー回避
+                let c = (self.registers.A as u16) < (r as u16) + (carry as u16);
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                8
+            },
             0xDF => { },
             0xE0 => { // LDH (n), A
                 let addr = 0xFF00 | self.fetch_byte() as u16;
@@ -498,7 +834,14 @@ impl Cpu {
             },
             0xE6 => { },
             0xE7 => { },
-            0xE8 => { },
+            0xE8 => { // ADD SP, e
+                let e = self.fetch_byte() as i8 as i16 as u16; // 負のオフセットを正しく動作させる
+                let h = (self.registers.SP & 0xF) + (e & 0xF) > 0xF;
+                let c = (self.registers.SP & 0xFF) + (e & 0xFF) > 0xFF;
+                self.registers.SP = self.registers.SP.wrapping_add(e);
+                self.registers.update_flags(Some(false), Some(false), Some(h), Some(c));
+                16
+            },
             0xE9 => { },
             0xEA => { // LD (nn), A
                 let addr = self.fetch_byte() as u16 | ((self.fetch_byte() as u16) << 8);
@@ -539,14 +882,10 @@ impl Cpu {
             0xF6 => { },
             0xF7 => { },
             0xF8 => { // LD HL, SP+e
-                // 計算処理
-                let sp = self.registers.SP;
                 let e = self.fetch_byte() as i8 as i16 as u16;
-                let value = sp.wrapping_add(e);
-                self.registers.set_hl(value);
-                // フラグの更新
-                let h = (sp & 0x0F) + (e as u16 & 0x0F) > 0x0F;
-                let c = (sp & 0xFF) + (e as u16 & 0xFF) > 0xFF;
+                self.registers.set_hl(self.registers.SP.wrapping_add(e));
+                let h = (self.registers.SP & 0x0F) + (e as u16 & 0x0F) > 0x0F;
+                let c = (self.registers.SP & 0xFF) + (e as u16 & 0xFF) > 0xFF;
                 self.registers.update_flags(Some(false), Some(false), Some(h), Some(c));
                 12
             },
