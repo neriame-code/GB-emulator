@@ -24,7 +24,7 @@ LR35902 CPU の完全実装。
 - [x] JP/JR  
 - [x] CALL/RET  
 - [x] PUSH/POP  
-- [ ] RST  
+- [x] RST  
 
 ## ▼ 1.4 CB-prefix 命令
 - [ ] RLC/RRC/RL/RR  

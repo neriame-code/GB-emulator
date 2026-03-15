@@ -1010,7 +1010,17 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
                 8
             },
-            0xC7 => { },
+            0xC7 => { // RST 0x00
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = 0x0000;
+                16
+            },
             0xC8 => { // RET Z
                 if self.registers.get_flag(Flag::Z) {
                     let lo = self.bus.read(self.registers.SP);
@@ -1079,7 +1089,17 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(false), Some(h), Some(c));
                 8
             },
-            0xCF => { },
+            0xCF => { // RST 0x08
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = 0x0008;
+                16
+            },
             0xD0 => { // RET NC
                 if !self.registers.get_flag(Flag::C) {
                     let lo = self.bus.read(self.registers.SP);
@@ -1140,7 +1160,17 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
                 8
             },
-            0xD7 => { },
+            0xD7 => { // RST 0x10
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = 0x0010;
+                16
+            },
             0xD8 => { // RET C
                 if self.registers.get_flag(Flag::C) {
                     let lo = self.bus.read(self.registers.SP);
@@ -1198,7 +1228,17 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
                 8
             },
-            0xDF => { },
+            0xDF => { // RST 0x18
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = 0x0018;
+                16
+            },
             0xE0 => { // LDH (n), A
                 let addr = 0xFF00 | self.fetch_byte() as u16;
                 self.bus.write(addr, self.registers.A);
@@ -1232,7 +1272,17 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
                 8
             },
-            0xE7 => { },
+            0xE7 => { // RST 0x20
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = 0x0020;
+                16
+            },
             0xE8 => { // ADD SP, e
                 let e = self.fetch_byte() as i8 as i16 as u16; // 負のオフセットを正しく動作させる
                 let h = (self.registers.SP & 0xF) + (e & 0xF) > 0xF;
@@ -1257,7 +1307,17 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
                 8
             },
-            0xEF => { },
+            0xEF => { // RST 0x28
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = 0x0028;
+                16
+            },
             0xF0 => { // LDH A, (n)
                 let addr = 0xFF00 | self.fetch_byte() as u16;
                 self.registers.A = self.bus.read(addr);
@@ -1291,7 +1351,17 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
                 8
             },
-            0xF7 => { },
+            0xF7 => { // RST 0x30
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = 0x0030;
+                16
+            },
             0xF8 => { // LD HL, SP+e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 self.registers.set_hl(self.registers.SP.wrapping_add(e));
@@ -1317,7 +1387,17 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
                 8
             },
-            0xFF => { },
+            0xFF => { // RST 0x38
+                let ret_addr = self.registers.PC;
+                let hi = (ret_addr >> 8 & 0xFF) as u8;
+                let lo = (ret_addr & 0xFF) as u8;
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, hi);
+                self.registers.SP = self.registers.SP.wrapping_sub(1);
+                self.bus.write(self.registers.SP, lo);
+                self.registers.PC = 0x0038;
+                16
+            },
             _ => panic!("未実装のオペコードです: 0x{:02X}", opcode),
         }
     }
