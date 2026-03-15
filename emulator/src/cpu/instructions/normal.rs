@@ -684,38 +684,238 @@ impl Cpu {
                 self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
                 4
             },
-            0xA0 => { },
-            0xA1 => { },
-            0xA2 => { },
-            0xA3 => { },
-            0xA4 => { },
-            0xA5 => { },
-            0xA6 => { },
-            0xA7 => { },
-            0xA8 => { },
-            0xA9 => { },
-            0xAA => { },
-            0xAB => { },
-            0xAC => { },
-            0xAD => { },
-            0xAE => { },
-            0xAF => { },
-            0xB0 => { },
-            0xB1 => { },
-            0xB2 => { },
-            0xB3 => { },
-            0xB4 => { },
-            0xB5 => { },
-            0xB6 => { },
-            0xB7 => { },
-            0xB8 => { },
-            0xB9 => { },
-            0xBA => { },
-            0xBB => { },
-            0xBC => { },
-            0xBD => { },
-            0xBE => { },
-            0xBF => { },
+            0xA0 => { // AND A, B
+                let r = self.registers.B;
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                4
+            },
+            0xA1 => { // AND A, C
+                let r = self.registers.C;
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                4
+            },
+            0xA2 => { // AND A, D
+                let r = self.registers.D;
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                4
+            },
+            0xA3 => { // AND A, E
+                let r = self.registers.E;
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                4
+            },
+            0xA4 => { // AND A, H
+                let r = self.registers.H;
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                4
+            },
+            0xA5 => { // AND A, L
+                let r = self.registers.L;
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                4
+            },
+            0xA6 => { // AND A, (HL)
+                let r = self.bus.read(self.registers.get_hl());
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                8
+            },
+            0xA7 => { // AND A, A
+                let r = self.registers.A;
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                4
+            },
+            0xA8 => { // XOR A, B
+                let r = self.registers.B;
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xA9 => { // XOR A, C
+                let r = self.registers.C;
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xAA => { // XOR A, D
+                let r = self.registers.D;
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xAB => { // XOR A, E
+                let r = self.registers.E;
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xAC => { // XOR A, H
+                let r = self.registers.H;
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xAD => { // XOR A, L
+                let r = self.registers.L;
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xAE => { // XOR A, (HL)
+                let r = self.bus.read(self.registers.get_hl());
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                8
+            },
+            0xAF => { // XOR A, A
+                let r = self.registers.A;
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xB0 => { // OR A, B
+                let r = self.registers.B;
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xB1 => { // OR A, C
+                let r = self.registers.C;
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xB2 => { // OR A, D
+                let r = self.registers.D;
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xB3 => { // OR A, E
+                let r = self.registers.E;
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xB4 => { // OR A, H
+                let r = self.registers.H;
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xB5 => { // OR A, L
+                let r = self.registers.L;
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xB6 => { // OR A, (HL)
+                let r = self.bus.read(self.registers.get_hl());
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                8
+            },
+            0xB7 => { // OR A, A
+                let r = self.registers.A;
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                4
+            },
+            0xB8 => { // CP A, B
+                let r = self.registers.B;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0xB9 => { // CP A, C
+                let r = self.registers.C;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0xBA => { // CP A, D
+                let r = self.registers.D;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0xBB => { // CP A, E
+                let r = self.registers.E;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0xBC => { // CP A, H
+                let r = self.registers.H;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0xBD => { // CP A, L
+                let r = self.registers.L;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
+            0xBE => { // CP A, (HL)
+                let r = self.bus.read(self.registers.get_hl());
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                8
+            },
+            0xBF => { // CP A, A
+                let r = self.registers.A;
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                4
+            },
             0xC0 => { },
             0xC1 => { // POP BC
                 self.registers.C = self.bus.read(self.registers.SP);
@@ -832,7 +1032,13 @@ impl Cpu {
                 self.bus.write(self.registers.SP, self.registers.L);
                 16
             },
-            0xE6 => { },
+            0xE6 => { // AND A, n
+                let r = self.fetch_byte();
+                let result = self.registers.A & r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(true), Some(false));
+                8
+            },
             0xE7 => { },
             0xE8 => { // ADD SP, e
                 let e = self.fetch_byte() as i8 as i16 as u16; // 負のオフセットを正しく動作させる
@@ -851,7 +1057,13 @@ impl Cpu {
             0xEB => { },
             0xEC => { },
             0xED => { },
-            0xEE => { },
+            0xEE => { // XOR A, n
+                let r = self.fetch_byte();
+                let result = self.registers.A ^ r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                8
+            },
             0xEF => { },
             0xF0 => { // LDH A, (n)
                 let addr = 0xFF00 | self.fetch_byte() as u16;
@@ -879,7 +1091,13 @@ impl Cpu {
                 self.bus.write(self.registers.SP, self.registers.F);
                 16
             },
-            0xF6 => { },
+            0xF6 => { // OR A, n
+                let r = self.fetch_byte();
+                let result = self.registers.A | r;
+                self.registers.A = result;
+                self.registers.update_flags(Some(result == 0), Some(false), Some(false), Some(false));
+                8
+            },
             0xF7 => { },
             0xF8 => { // LD HL, SP+e
                 let e = self.fetch_byte() as i8 as i16 as u16;
@@ -898,7 +1116,14 @@ impl Cpu {
             0xFB => { },
             0xFC => { },
             0xFD => { },
-            0xFE => { },
+            0xFE => { // CP A, n
+                let r = self.fetch_byte();
+                let result = self.registers.A.wrapping_sub(r);
+                let h = (self.registers.A & 0xF) < (r & 0xF);
+                let c = self.registers.A < r;
+                self.registers.update_flags(Some(result == 0), Some(true), Some(h), Some(c));
+                8
+            },
             0xFF => { },
             _ => panic!("未実装のオペコードです: 0x{:02X}", opcode),
         }

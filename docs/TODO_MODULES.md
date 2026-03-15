@@ -20,7 +20,7 @@ LR35902 CPU の完全実装。
 - [x] 16bit LD 系  
 - [x] INC/DEC  
 - [x] ADD/ADC/SUB/SBC  
-- [ ] AND/OR/XOR/CP  
+- [x] AND/OR/XOR/CP  
 - [ ] JP/JR  
 - [ ] CALL/RET  
 - [ ] PUSH/POP  
