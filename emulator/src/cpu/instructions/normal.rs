@@ -3,7 +3,7 @@ use crate::cpu::{Cpu, registers::Flag};
 impl Cpu {
     pub fn execute(&mut self, opcode: u8) -> u8 {
         match opcode {
-            0x00 => { },
+            0x00 => { 4 },
             0x01 => { // LD BC, nn
                 let value = self.fetch_word();
                 self.registers.set_bc(value);
@@ -286,7 +286,6 @@ impl Cpu {
             },
             0x3E => { self.registers.A = self.fetch_byte(); 8 }, // LD A, n
             0x3F => { },
-
             0x40 => { self.registers.B = self.registers.B; 4 }, // 実質的にはNOP
             0x41 => { self.registers.B = self.registers.C; 4 },
             0x42 => { self.registers.B = self.registers.D; 4 },
@@ -299,7 +298,6 @@ impl Cpu {
                 8
             },
             0x47 => { self.registers.B = self.registers.A; 4 },
-
             0x48 => { self.registers.C = self.registers.B; 4 },
             0x49 => { self.registers.C = self.registers.C; 4 }, // 実質的にはNOP
             0x4A => { self.registers.C = self.registers.D; 4 },
@@ -312,7 +310,6 @@ impl Cpu {
                 8
             },
             0x4F => { self.registers.C = self.registers.A; 4 },
-
             0x50 => { self.registers.D = self.registers.B; 4 },
             0x51 => { self.registers.D = self.registers.C; 4 },
             0x52 => { self.registers.D = self.registers.D; 4 }, // 実質的にはNOP
@@ -325,7 +322,6 @@ impl Cpu {
                 8
             },
             0x57 => { self.registers.D = self.registers.A; 4 },
-
             0x58 => { self.registers.E = self.registers.B; 4 },
             0x59 => { self.registers.E = self.registers.C; 4 },
             0x5A => { self.registers.E = self.registers.D; 4 },
@@ -338,7 +334,6 @@ impl Cpu {
                 8
             },
             0x5F => { self.registers.E = self.registers.A; 4 },
-
             0x60 => { self.registers.H = self.registers.B; 4 },
             0x61 => { self.registers.H = self.registers.C; 4 },
             0x62 => { self.registers.H = self.registers.D; 4 },
@@ -351,7 +346,6 @@ impl Cpu {
                 8
             },
             0x67 => { self.registers.H = self.registers.A; 4 },
-
             0x68 => { self.registers.L = self.registers.B; 4 },
             0x69 => { self.registers.L = self.registers.C; 4 },
             0x6A => { self.registers.L = self.registers.D; 4 },
@@ -364,7 +358,6 @@ impl Cpu {
                 8
             },
             0x6F => { self.registers.L = self.registers.A; 4 },
-
             0x70 => { // LD (HL), B
                 let addr = self.registers.get_hl();
                 self.bus.write(addr, self.registers.B);
@@ -395,12 +388,12 @@ impl Cpu {
                 self.bus.write(addr, self.registers.L);
                 8
             },
+            0x76 => {},
             0x77 => { // LD (HL), A
                 let addr = self.registers.get_hl();
                 self.bus.write(addr, self.registers.A);
                 8
             },
-
             0x78 => { self.registers.A = self.registers.B; 4 },
             0x79 => { self.registers.A = self.registers.C; 4 },
             0x7A => { self.registers.A = self.registers.D; 4 },
@@ -413,7 +406,6 @@ impl Cpu {
                 8
             },
             0x7F => { self.registers.A = self.registers.A; 4 }, // 実質的にはNOP
-
             0x80 => { // ADD A, B
                 let r = self.registers.B;
                 let result = self.registers.A.wrapping_add(r);
@@ -1127,7 +1119,7 @@ impl Cpu {
                     12
                 }
             },
-            0xD3 => { },
+            // 0xD3 => { },
             0xD4 => { // CALL NC, nn
                 let nn = self.fetch_word();
                 if !self.registers.get_flag(Flag::C) {
@@ -1200,7 +1192,7 @@ impl Cpu {
                     12
                 }
             },
-            0xDB => { },
+            // 0xDB => { },
             0xDC => { // CALL C, nn
                 let nn = self.fetch_word();
                 if self.registers.get_flag(Flag::C) {
@@ -1217,7 +1209,7 @@ impl Cpu {
                     12
                 }
             },
-            0xDD => { },
+            // 0xDD => { },
             0xDE => { // SBC A, n
                 let r = self.fetch_byte();
                 let carry = self.registers.get_flag(Flag::C) as u8;
@@ -1256,8 +1248,8 @@ impl Cpu {
                 self.bus.write(addr, self.registers.A);
                 8
             },
-            0xE3 => { },
-            0xE4 => { },
+            // 0xE3 => { },
+            // 0xE4 => { },
             0xE5 => { // PUSH HL
                 self.registers.SP = self.registers.SP.wrapping_sub(1);
                 self.bus.write(self.registers.SP, self.registers.H);
@@ -1293,13 +1285,13 @@ impl Cpu {
             },
             0xE9 => { self.registers.PC = self.registers.get_hl(); 4 }, // JP (HL)
             0xEA => { // LD (nn), A
-                let addr = self.fetch_word;
+                let addr = self.fetch_word();
                 self.bus.write(addr, self.registers.A);
                 16
             },
-            0xEB => { },
-            0xEC => { },
-            0xED => { },
+            // 0xEB => { },
+            // 0xEC => { },
+            // 0xED => { },
             0xEE => { // XOR A, n
                 let r = self.fetch_byte();
                 let result = self.registers.A ^ r;
@@ -1336,7 +1328,7 @@ impl Cpu {
                 8
             },
             0xF3 => { },
-            0xF4 => { },
+            // 0xF4 => { },
             0xF5 => { // PUSH AF
                 self.registers.SP = self.registers.SP.wrapping_sub(1);
                 self.bus.write(self.registers.SP, self.registers.A);
@@ -1377,8 +1369,8 @@ impl Cpu {
                 16
             },
             0xFB => { },
-            0xFC => { },
-            0xFD => { },
+            // 0xFC => { },
+            // 0xFD => { },
             0xFE => { // CP A, n
                 let r = self.fetch_byte();
                 let result = self.registers.A.wrapping_sub(r);

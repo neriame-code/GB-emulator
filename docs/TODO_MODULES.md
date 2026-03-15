@@ -25,6 +25,9 @@ LR35902 CPU の完全実装。
 - [x] CALL/RET  
 - [x] PUSH/POP  
 - [x] RST  
+- [ ] ローテート  
+- [ ] BCD補正・ビット反転・フラグ操作  
+- [ ] CPU制御  
 
 ## ▼ 1.4 CB-prefix 命令
 - [ ] RLC/RRC/RL/RR  
