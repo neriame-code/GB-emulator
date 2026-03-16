@@ -30,7 +30,12 @@ impl Cpu {
                 4 
             },
             0x06 => { self.registers.B = self.fetch_byte(); 8 }, // LD B, n
-            0x07 => { },
+            0x07 => { // RLCA
+                let temp = self.registers.A >> 7;
+                self.registers.A = self.registers.A << 1 | temp;
+                self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
+                4
+            },
             0x08 => { // LD (nn), SP
                 let addr = self.fetch_word();
                 self.bus.write(addr, (self.registers.SP & 0xFF) as u8);
@@ -66,7 +71,12 @@ impl Cpu {
                 4 
             },
             0x0E => { self.registers.C = self.fetch_byte(); 8 }, // LD C, n
-            0x0F => { },
+            0x0F => { // RRCA
+                let temp = self.registers.A & 0x01;
+                self.registers.A = self.registers.A >> 1 | temp << 7;
+                self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
+                4
+            },
             0x10 => { },
             0x11 => { // LD DE, nn
                 let value = self.fetch_word();
@@ -94,7 +104,12 @@ impl Cpu {
                 4 
             },
             0x16 => { self.registers.D = self.fetch_byte(); 8 }, // LD D, n
-            0x17 => { },
+            0x17 => { // RLA
+                let temp = self.registers.A >> 7;
+                self.registers.A = self.registers.A << 1 | self.registers.get_flag(Flag::C) as u8;
+                self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
+                4
+            },
             0x18 => { // JR e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 self.registers.PC = self.registers.PC.wrapping_add(e);
@@ -129,7 +144,12 @@ impl Cpu {
                 4 
             },
             0x1E => { self.registers.E = self.fetch_byte(); 8 }, // LD E, n
-            0x1F => { },
+            0x1F => { // RRA
+                let temp = self.registers.A & 0x01;
+                self.registers.A = self.registers.A >> 1 | (self.registers.get_flag(Flag::C) as u8) << 7;
+                self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
+                4
+            },
             0x20 => { // JP NZ, e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 if !self.registers.get_flag(Flag::Z) {
