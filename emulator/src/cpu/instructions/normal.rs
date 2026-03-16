@@ -3,7 +3,7 @@ use crate::cpu::{Cpu, registers::Flag};
 impl Cpu {
     pub fn execute(&mut self, opcode: u8) -> u8 {
         match opcode {
-            0x00 => { 4 },
+            0x00 => { 4 }, // NOP
             0x01 => { // LD BC, nn
                 let value = self.fetch_word();
                 self.registers.set_bc(value);
@@ -77,7 +77,12 @@ impl Cpu {
                 self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
                 4
             },
-            0x10 => { },
+            0x10 => { // STOP
+                // 簡易的に二回フェッチする方法で実装
+                self.fetch_byte();
+                self.fetch_byte();
+                4
+            },
             0x11 => { // LD DE, nn
                 let value = self.fetch_word();
                 self.registers.set_de(value);
@@ -289,7 +294,8 @@ impl Cpu {
             },
             0x36 => { // LD (HL), n
                 let addr = self.registers.get_hl();
-                self.bus.write(addr, self.fetch_byte());
+                let value = self.fetch_byte();
+                self.bus.write(addr, value);
                 12
             },
             0x37 => { // SCF
@@ -440,7 +446,7 @@ impl Cpu {
                 self.bus.write(addr, self.registers.L);
                 8
             },
-            0x76 => {},
+            0x76 => { self.halted = true; 4 }, // HALT
             0x77 => { // LD (HL), A
                 let addr = self.registers.get_hl();
                 self.bus.write(addr, self.registers.A);
@@ -1093,7 +1099,10 @@ impl Cpu {
                     12
                 }
             },
-            0xCB => { }, // cbデコーダはここで呼ぶ
+            0xCB => { // cbデコーダはここで呼ぶ
+                let opecode = self.fetch_byte();
+                self.prefix_execute(opecode)
+            },
             0xCC => { // CALL Z, nn
                 let nn = self.fetch_word();
                 if self.registers.get_flag(Flag::Z) {
@@ -1379,7 +1388,7 @@ impl Cpu {
                 self.registers.A = self.bus.read(addr);
                 8
             },
-            0xF3 => { },
+            0xF3 => { self.ime = false; 4 }, // DI
             // 0xF4 => { },
             0xF5 => { // PUSH AF
                 self.registers.SP = self.registers.SP.wrapping_sub(1);
@@ -1420,7 +1429,7 @@ impl Cpu {
                 self.registers.A = self.bus.read(addr); 
                 16
             },
-            0xFB => { },
+            0xFB => { self.ei_pending = true; 4 }, // EI
             // 0xFC => { },
             // 0xFD => { },
             0xFE => { // CP A, n

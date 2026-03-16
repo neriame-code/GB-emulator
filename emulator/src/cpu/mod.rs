@@ -11,6 +11,7 @@ pub struct Cpu {
     pub registers : Registers,
     pub bus       : Bus,
     pub ime       : bool,
+    pub halted    : bool,
     pub ei_pending: bool, // EI(0xFB)の実装で1命令後に1にする処理に必要
 }
 

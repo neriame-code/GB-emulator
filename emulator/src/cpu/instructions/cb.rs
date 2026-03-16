@@ -1,7 +1,7 @@
 use crate::cpu::Cpu;
 
 impl Cpu {
-    fn prefix_execute(&mut self, opcode: u8) /*-> u8*/ {
+    pub fn prefix_execute(&mut self, opcode: u8) -> u8 {
         match opcode {
             0x00 => { },
             0x01 => { },
