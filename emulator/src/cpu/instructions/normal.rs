@@ -185,7 +185,29 @@ impl Cpu {
                 4 
             },
             0x26 => { self.registers.H = self.fetch_byte(); 8 }, // LD H, n
-            0x27 => { },
+            0x27 => { // DAA
+                let mut result = self.registers.A;
+                if !self.registers.get_flag(Flag::N) {
+                    if self.registers.get_flag(Flag::C) || (self.registers.A > 0x99) {
+                        result += 0x60;
+                        self.registers.set_flag(Flag::C, true);
+                    }
+                    if self.registers.get_flag(Flag::H) || (self.registers.A & 0x0F > 0x09) {
+                        result += 0x06;
+                    }
+                }else {
+                    if self.registers.get_flag(Flag::C){
+                        result -= 0x60;
+                        self.registers.set_flag(Flag::C, true);
+                    }
+                    if self.registers.get_flag(Flag::H) {
+                        result -= 0x06;
+                    }
+                }
+                self.registers.A = result;
+                self.registers.update_flags(Some(result==0), None, Some(false), None);
+                4
+            },
             0x28 => { // JP Z, e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 if self.registers.get_flag(Flag::Z) {
@@ -224,7 +246,11 @@ impl Cpu {
                 4 
             },
             0x2E => { self.registers.L = self.fetch_byte(); 8 }, // LD L, n
-            0x2F => { },
+            0x2F => { // CPL
+                self.registers.A = !self.registers.A;
+                self.registers.update_flags(None, Some(true), Some(true), None);
+                4
+            },
             0x30 => { // JP NC, e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 if !self.registers.get_flag(Flag::C) {
@@ -266,7 +292,10 @@ impl Cpu {
                 self.bus.write(addr, self.fetch_byte());
                 12
             },
-            0x37 => { },
+            0x37 => { // SCF
+                self.registers.update_flags(None, Some(false), Some(false), Some(true));
+                4
+            },
             0x38 => { // JP C, e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 if self.registers.get_flag(Flag::C) {
@@ -305,7 +334,10 @@ impl Cpu {
                 4 
             },
             0x3E => { self.registers.A = self.fetch_byte(); 8 }, // LD A, n
-            0x3F => { },
+            0x3F => { // CCF
+                self.registers.update_flags(None, Some(false), Some(false), Some(!self.registers.get_flag(Flag::C)));
+                4
+            },
             0x40 => { self.registers.B = self.registers.B; 4 }, // 実質的にはNOP
             0x41 => { self.registers.B = self.registers.C; 4 },
             0x42 => { self.registers.B = self.registers.D; 4 },
