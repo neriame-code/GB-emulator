@@ -13,6 +13,10 @@ pub struct Registers {
 pub enum Flag { Z = 0x80, N = 0x40, H = 0x20, C = 0x10, }
 
 impl Registers {
+    pub fn new() -> Self {
+        Registers { A: 0, F: 0, B: 0, C: 0, D: 0, E: 0, H: 0, L: 0, SP: 0, PC: 0 }
+    }
+
     // === フラグレジスタ操作用メソッド ===
     pub fn get_flag(&self, flag: Flag) -> bool { (self.F & (flag as u8)) != 0 }
     pub fn set_flag(&mut self, flag: Flag, value: bool) {

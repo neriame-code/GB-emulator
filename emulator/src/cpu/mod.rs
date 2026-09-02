@@ -16,6 +16,11 @@ pub struct Cpu {
 }
 
 impl Cpu {
+    // テスト用(異なるメモリ状態にしたいので引数にする)
+    pub fn new(bus: Bus) -> Self{
+        Cpu { registers: Registers::new(), bus, ime: false, halted: false, ei_pending: false }
+    }
+
     pub fn fetch_byte(&mut self) -> u8 {
         let data = self.bus.read(self.registers.PC);
         self.registers.PC = self.registers.PC.wrapping_add(1);
