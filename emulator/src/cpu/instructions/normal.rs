@@ -1,6 +1,9 @@
 use crate::cpu::{Cpu, registers::Flag};
 
 impl Cpu {
+    // LD r,r（0x40/0x49/0x52/0x5B/0x64/0x6D/0x7F）は自己代入だが、
+    // 実機に存在する命令で4サイクルを消費するため意図的にこの形で書いている
+    #[allow(clippy::self_assignment)]
     pub fn execute(&mut self, opcode: u8) -> u8 {
         match opcode {
             0x00 => { 4 }, // NOP
@@ -78,8 +81,6 @@ impl Cpu {
                 4
             },
             0x10 => { // STOP
-                // 簡易的に二回フェッチする方法で実装
-                self.fetch_byte();
                 self.fetch_byte();
                 4
             },
@@ -194,19 +195,19 @@ impl Cpu {
                 let mut result = self.registers.A;
                 if !self.registers.get_flag(Flag::N) {
                     if self.registers.get_flag(Flag::C) || (self.registers.A > 0x99) {
-                        result += 0x60;
+                        result = result.wrapping_add(0x60);
                         self.registers.set_flag(Flag::C, true);
                     }
                     if self.registers.get_flag(Flag::H) || (self.registers.A & 0x0F > 0x09) {
-                        result += 0x06;
+                        result = result.wrapping_add(0x06);
                     }
                 }else {
                     if self.registers.get_flag(Flag::C){
-                        result -= 0x60;
+                        result = result.wrapping_sub(0x60);
                         self.registers.set_flag(Flag::C, true);
                     }
                     if self.registers.get_flag(Flag::H) {
-                        result -= 0x06;
+                        result = result.wrapping_sub(0x06);
                     }
                 }
                 self.registers.A = result;
@@ -1020,8 +1021,9 @@ impl Cpu {
                 12
             },
             0xC2 => { // JP NZ, nn
+                let nn = self.fetch_word();
                 if !self.registers.get_flag(Flag::Z) {
-                    self.registers.PC = self.fetch_word();
+                    self.registers.PC = nn;
                     16
                 }else {
                     12
@@ -1092,8 +1094,9 @@ impl Cpu {
                 16
             },
             0xCA => { // JP Z, nn
+                let nn = self.fetch_word();
                 if self.registers.get_flag(Flag::Z) {
-                    self.registers.PC = self.fetch_word();
+                    self.registers.PC = nn;
                     16
                 }else {
                     12
@@ -1173,8 +1176,9 @@ impl Cpu {
                 12
             },
             0xD2 => { // JP NC, nn
+                let nn = self.fetch_word();
                 if !self.registers.get_flag(Flag::C) {
-                    self.registers.PC = self.fetch_word();
+                    self.registers.PC = nn;
                     16
                 }else {
                     12
@@ -1246,8 +1250,9 @@ impl Cpu {
                 16
             },
             0xDA => { // JP C, nn
+                let nn = self.fetch_word();
                 if self.registers.get_flag(Flag::C) {
-                    self.registers.PC = self.fetch_word();
+                    self.registers.PC = nn;
                     16
                 }else {
                     12
@@ -1418,8 +1423,8 @@ impl Cpu {
             0xF8 => { // LD HL, SP+e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 self.registers.set_hl(self.registers.SP.wrapping_add(e));
-                let h = (self.registers.SP & 0x0F) + (e as u16 & 0x0F) > 0x0F;
-                let c = (self.registers.SP & 0xFF) + (e as u16 & 0xFF) > 0xFF;
+                let h = (self.registers.SP & 0x0F) + (e & 0x0F) > 0x0F;
+                let c = (self.registers.SP & 0xFF) + (e & 0xFF) > 0xFF;
                 self.registers.update_flags(Some(false), Some(false), Some(h), Some(c));
                 12
             },

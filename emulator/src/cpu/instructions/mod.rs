@@ -1,2 +1,2 @@
-pub mod normal;
 pub mod cb;
+pub mod normal;
