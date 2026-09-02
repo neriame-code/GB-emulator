@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Edit(emulator/**)",
+      "Write(emulator/**)",
+      "NotebookEdit(emulator/**)",
+      "Edit(//home/neriame/RustProjects/gb_emulator/emulator/**)",
+      "Write(//home/neriame/RustProjects/gb_emulator/emulator/**)",
+      "NotebookEdit(//home/neriame/RustProjects/gb_emulator/emulator/**)",
+      "Bash(cargo fmt:*)",
+      "Bash(cargo fix:*)",
+      "Bash(cargo add:*)",
+      "Bash(cargo remove:*)",
+      "Bash(rustfmt:*)",
+      "Bash(sed -i:*)",
+      "Bash(git restore:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reset:*)",
+      "Bash(git clean:*)"
+    ]
+  }
+}
