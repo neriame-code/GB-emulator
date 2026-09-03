@@ -1,6 +1,6 @@
 use crate::bus::Bus;
 
-// === 各バス領域のReadWrite検証 ===
+// ==================== 各バス領域のReadWrite検証 ====================
 #[test]
 fn vram_roundtrip() {
     let mut bus = Bus::new();
@@ -50,7 +50,7 @@ fn ie_roundtrip() {
     assert_eq!(bus.read(0xFFFF), 0x07, "ie.read(0xFFFF) -> 0x07");
 }
 
-// === 境界値テスト ===
+// ==================== 境界値テスト ====================
 // 各領域の長さに関してもこのテストで保障(できてるはず)
 #[test]
 fn boundary_vram() {
@@ -146,7 +146,7 @@ fn boundary_ie() {
     assert_eq!(bus.read(0xFFFF), 0xD0, "ie -> read(0xFFFF)");
 }
 
-// === EchoRAMの検証 ===
+// ==================== EchoRAMの検証 ====================
 #[test]
 fn echo_ram_mirrors_wram() {
     let mut bus = Bus::new();
@@ -169,7 +169,7 @@ fn echo_ram_reverse() {
     assert_eq!(bus.read(0xFDFF), 0x03, "echo[0xFDFF] -> 0x03");
 }
 
-// === 書き込み無視、特殊呼び出し ===
+// ==================== 書き込み無視、特殊呼び出し ====================
 #[test]
 fn rom_area_is_read_only() {
     // TODO: MBC実装後に修正が必要
@@ -199,7 +199,7 @@ fn unusable_area_write_is_ignored() {
     assert_eq!(bus.io[0x00], 0x04, "io[0x00] -> 0x04");
 }
 
-// === 分離(hramとieの分離確認) ===
+// ==================== 分離(hramとieの分離確認) ====================
 #[test]
 fn ie_is_separate_from_hram() {
     let mut bus = Bus::new();
@@ -214,7 +214,7 @@ fn ie_is_separate_from_hram() {
     assert_eq!(bus.hram[0x7E], 0x20, "hram[0x7E] -> 0x20");
 }
 
-// === 総当たり ===
+// ==================== 総当たり ====================
 #[test]
 fn all_addresses_do_not_panic() {
     // 全アドレスを走査し、panicしないことを確認する

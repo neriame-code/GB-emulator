@@ -156,7 +156,7 @@ impl Cpu {
                 self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
                 4
             },
-            0x20 => { // JP NZ, e
+            0x20 => { // JR NZ, e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 if !self.registers.get_flag(Flag::Z) {
                     self.registers.PC = self.registers.PC.wrapping_add(e);
@@ -214,7 +214,7 @@ impl Cpu {
                 self.registers.update_flags(Some(result==0), None, Some(false), None);
                 4
             },
-            0x28 => { // JP Z, e
+            0x28 => { // JR Z, e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 if self.registers.get_flag(Flag::Z) {
                     self.registers.PC = self.registers.PC.wrapping_add(e);
@@ -257,7 +257,7 @@ impl Cpu {
                 self.registers.update_flags(None, Some(true), Some(true), None);
                 4
             },
-            0x30 => { // JP NC, e
+            0x30 => { // JR NC, e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 if !self.registers.get_flag(Flag::C) {
                     self.registers.PC = self.registers.PC.wrapping_add(e);
@@ -303,7 +303,7 @@ impl Cpu {
                 self.registers.update_flags(None, Some(false), Some(false), Some(true));
                 4
             },
-            0x38 => { // JP C, e
+            0x38 => { // JR C, e
                 let e = self.fetch_byte() as i8 as i16 as u16;
                 if self.registers.get_flag(Flag::C) {
                     self.registers.PC = self.registers.PC.wrapping_add(e);
