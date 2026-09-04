@@ -1,3 +1,6 @@
+use std::iter::Cycle;
+
+use crate::cpu::registers;
 use crate::cpu::{Cpu, registers::Flag};
 use crate::bus::Bus;
 
@@ -11,10 +14,11 @@ fn nop_costs_4_cycles() {
 #[test]
 fn stop_consumes_one_operand_byte() {
     let mut cpu = Cpu::new(Bus::new());
-    let start = 0xC100u16;
-    cpu.registers.PC = start; // wram
+    let start_pc = 0xC100u16;
+    cpu.registers.PC = start_pc; // wram
     let cycle = cpu.execute(0x10); // STOP
-    assert_eq!(cpu.registers.PC, start+1, "STOP -> PC+1");
+
+    assert_eq!(cpu.registers.PC, start_pc+1, "STOP -> PC+1");
     assert_eq!(cycle, 4, "cycle -> 4");
 }
 
@@ -48,7 +52,21 @@ fn undefined_opcode_panics() {
 // ==================== 8bitロード ====================
 #[test]
 fn ld_r_n_loads_immediate() {
+    // LD命令の代表として LD B, n を用いる
     let mut cpu = Cpu::new(Bus::new());
+    let start_pc = 0xC100u16;
+    let operand = 0x10u8;
+    let flag = 0xF0;
+    cpu.registers.PC = start_pc; // wram
+    cpu.bus.write(start_pc, operand);
+    cpu.registers.B = 0x20;
+    cpu.registers.F = flag;
+    let cycle = cpu.execute(0x06); // LD B, n
+
+    assert_eq!(cpu.registers.B, operand, "operand -> B");
+    assert_eq!(cpu.registers.F, flag, "F -> flag");
+    assert_eq!(cpu.registers.PC, start_pc+1, "LD -> PC+1");
+    assert_eq!(cycle, 8, "cycle -> 8");
 }
 
 #[ignore]
@@ -65,7 +83,39 @@ fn ld_r_r_copies_source() {
 
 #[test]
 fn ld_r_r_all_opcodes() {
+    // HLに関するテストは別で行っている
+    // index: 0=B 1=C 2=D 3=E 4=H 5=L 6=(HL) 7=A
     let mut cpu = Cpu::new(Bus::new());
+    let init = [0xB0u8, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xFF, 0xB7];
+    let mut count = 0;
+    let start_pc = 0xC100u16;
+    let flag = 0xF0;
+
+    // opcode = 0b01_ddd_sss
+    // ただしddd == 6とsss == 6はやらなくてOK(HALT関連)
+    for opcode in 0x40..=0x7F {
+        let ddd = (opcode >> 3) & 7; // 転送先
+        let sss = opcode & 7;        // 転送元
+        if ddd == 6 || sss == 6 { continue; }
+        for i in 0..8{
+            if i == 6 { continue;} 
+            reg_set(&mut cpu, i, init[i as usize]);
+        }
+        cpu.registers.PC = start_pc;
+        cpu.registers.F = flag;
+        let cycle = cpu.execute(opcode);
+        for i in 0..8{
+            if i == 6 { continue;} 
+            let expect = if i == ddd { init[sss as usize] }
+                             else { init[i as usize] };
+            assert_eq!(reg_get(&cpu, i), expect, "opcode: {:02X}, registers_index: {:02X}", opcode, i);
+        }
+        assert_eq!(cpu.registers.F, flag, "F -> flag (opcode: {:02X})", opcode);
+        assert_eq!(cpu.registers.PC, start_pc, "LD -> PC (opcode: {:02X})", opcode);
+        assert_eq!(cycle, 4, "cycle -> 4 (opcode: {:02X})", opcode);
+        count += 1;
+    }
+    assert_eq!(count, 49, "count -> 49");
 }
 
 #[ignore]
@@ -126,6 +176,35 @@ fn ldh_n_a_uses_ff00_offset() {
 fn ldh_c_a_uses_ff00_offset() {
     let mut cpu = Cpu::new(Bus::new());
 }
+
+fn reg_get(cpu: &Cpu, i: u8) -> u8 {
+    match i {
+        0 => cpu.registers.B,
+        1 => cpu.registers.C,
+        2 => cpu.registers.D,
+        3 => cpu.registers.E,
+        4 => cpu.registers.H,
+        5 => cpu.registers.L,
+        6 => unreachable!(), // HL
+        7 => cpu.registers.A,
+        _ => unreachable!()
+    }
+}
+
+fn reg_set(cpu: &mut Cpu, i: u8, v: u8) {
+    match i {
+        0 => cpu.registers.B = v,
+        1 => cpu.registers.C = v,
+        2 => cpu.registers.D = v,
+        3 => cpu.registers.E = v,
+        4 => cpu.registers.H = v,
+        5 => cpu.registers.L = v,
+        6 => unreachable!(), // HL
+        7 => cpu.registers.A = v,
+        _ => unreachable!()
+    }
+}
+
 
 // ==================== 16bitロード, スタック ====================
 #[ignore]
