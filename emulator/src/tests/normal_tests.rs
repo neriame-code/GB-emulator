@@ -1,6 +1,3 @@
-use std::iter::Cycle;
-
-use crate::cpu::registers;
 use crate::cpu::{Cpu, registers::Flag};
 use crate::bus::Bus;
 
@@ -14,11 +11,14 @@ fn nop_costs_4_cycles() {
 #[test]
 fn stop_consumes_one_operand_byte() {
     let mut cpu = Cpu::new(Bus::new());
-    let start_pc = 0xC100u16;
-    cpu.registers.PC = start_pc; // wram
+    let pc_before = 0xC800u16;
+    let f_before = 0xF0u8;
+    cpu.registers.PC = pc_before;
+    cpu.registers.F = f_before;
     let cycle = cpu.execute(0x10); // STOP
 
-    assert_eq!(cpu.registers.PC, start_pc+1, "STOP -> PC+1");
+    assert_eq!(cpu.registers.F, f_before, "F 不変");
+    assert_eq!(cpu.registers.PC, pc_before + 1, "PC -> PC+1");
     assert_eq!(cycle, 4, "cycle -> 4");
 }
 
@@ -54,18 +54,19 @@ fn undefined_opcode_panics() {
 fn ld_r_n_loads_immediate() {
     // LD命令の代表として LD B, n を用いる
     let mut cpu = Cpu::new(Bus::new());
-    let start_pc = 0xC100u16;
-    let operand = 0x10u8;
-    let flag = 0xF0;
-    cpu.registers.PC = start_pc; // wram
-    cpu.bus.write(start_pc, operand);
-    cpu.registers.B = 0x20;
-    cpu.registers.F = flag;
+    let pc_before = 0xC800u16;
+    let n = 0x5Au8;
+    let b_before = 0x3Cu8;
+    let f_before = 0xF0u8;
+    cpu.registers.PC = pc_before;
+    cpu.bus.write(pc_before, n);
+    cpu.registers.B = b_before;
+    cpu.registers.F = f_before;
     let cycle = cpu.execute(0x06); // LD B, n
 
-    assert_eq!(cpu.registers.B, operand, "operand -> B");
-    assert_eq!(cpu.registers.F, flag, "F -> flag");
-    assert_eq!(cpu.registers.PC, start_pc+1, "LD -> PC+1");
+    assert_eq!(cpu.registers.B, n, "n -> B");
+    assert_eq!(cpu.registers.F, f_before, "F 不変");
+    assert_eq!(cpu.registers.PC, pc_before + 1, "PC -> PC+1 (即値1バイト)");
     assert_eq!(cycle, 8, "cycle -> 8");
 }
 
@@ -85,34 +86,39 @@ fn ld_r_r_copies_source() {
 fn ld_r_r_all_opcodes() {
     // HLに関するテストは別で行っている
     // index: 0=B 1=C 2=D 3=E 4=H 5=L 6=(HL) 7=A
+    // init は下位ニブルが出所を表す。index 6 は触らないので「あってはならない」印を置く
     let mut cpu = Cpu::new(Bus::new());
-    let init = [0xB0u8, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xFF, 0xB7];
+    let init = [0xB0u8, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xEE, 0xB7];
+    let pc_before = 0xC800u16;
+    let f_before = 0xF0u8;
     let mut count = 0;
-    let start_pc = 0xC100u16;
-    let flag = 0xF0;
 
     // opcode = 0b01_ddd_sss
     // ただしddd == 6とsss == 6はやらなくてOK(HALT関連)
-    for opcode in 0x40..=0x7F {
+    for opcode in 0x40..=0x7Fu8 {
         let ddd = (opcode >> 3) & 7; // 転送先
         let sss = opcode & 7;        // 転送元
         if ddd == 6 || sss == 6 { continue; }
-        for i in 0..8{
-            if i == 6 { continue;} 
+
+        for i in 0..8u8 {
+            if i == 6 { continue; }
             reg_set(&mut cpu, i, init[i as usize]);
         }
-        cpu.registers.PC = start_pc;
-        cpu.registers.F = flag;
+        cpu.registers.PC = pc_before;
+        cpu.registers.F = f_before;
+
+        // Act
         let cycle = cpu.execute(opcode);
-        for i in 0..8{
-            if i == 6 { continue;} 
+
+        for i in 0..8u8 {
+            if i == 6 { continue; }
             let expect = if i == ddd { init[sss as usize] }
                              else { init[i as usize] };
-            assert_eq!(reg_get(&cpu, i), expect, "opcode: {:02X}, registers_index: {:02X}", opcode, i);
+            assert_eq!(reg_get(&cpu, i), expect, "sss -> ddd (opcode: 0x{:02X}, index: {})", opcode, i);
         }
-        assert_eq!(cpu.registers.F, flag, "F -> flag (opcode: {:02X})", opcode);
-        assert_eq!(cpu.registers.PC, start_pc, "LD -> PC (opcode: {:02X})", opcode);
-        assert_eq!(cycle, 4, "cycle -> 4 (opcode: {:02X})", opcode);
+        assert_eq!(cpu.registers.F, f_before, "F 不変 (opcode: 0x{:02X})", opcode);
+        assert_eq!(cpu.registers.PC, pc_before, "PC 不変 (opcode: 0x{:02X})", opcode);
+        assert_eq!(cycle, 4, "cycle -> 4 (opcode: 0x{:02X})", opcode);
         count += 1;
     }
     assert_eq!(count, 49, "count -> 49");
@@ -155,8 +161,101 @@ fn ld_bc_de_indirect_both_directions() {
 }
 
 #[test]
-fn ld_hl_inc_dec_updates_hl() {
+fn ld_hl_inc_updates_hl() {
+    // === 0x22 (LD (HL+), A) ===
     let mut cpu = Cpu::new(Bus::new());
+    let addr = 0xC100u16;
+    let a_before = 0x5Au8;
+    let mem_next = 0xA5u8;
+    let pc_before = 0xC800u16;
+    let f_before = 0xF0u8;
+    cpu.registers.PC = pc_before;
+    cpu.registers.F = f_before;
+    cpu.registers.A = a_before;
+    cpu.registers.set_hl(addr);
+    cpu.bus.write(addr + 1, mem_next);
+    let cycle = cpu.execute(0x22); // LD (HL+), A
+
+    assert_eq!(cpu.bus.read(addr), a_before, "0x22: A -> (HL)");
+    assert_eq!(cpu.registers.get_hl(), addr + 1, "0x22: HL -> HL+1");
+    assert_eq!(cpu.bus.read(addr + 1), mem_next, "0x22: (HL+1) 不変");
+    assert_eq!(cpu.registers.A, a_before, "0x22: A 不変");
+    assert_eq!(cpu.registers.F, f_before, "0x22: F 不変");
+    assert_eq!(cpu.registers.PC, pc_before, "0x22: PC 不変");
+    assert_eq!(cycle, 8, "0x22: cycle -> 8");
+
+    // === 0x2A (LD A, (HL+)) ===
+    let mut cpu = Cpu::new(Bus::new());
+    let addr = 0xC200u16;
+    let mem = 0x5Au8;
+    let mem_next = 0xA5u8;
+    let a_before = 0x3Cu8;
+    let pc_before = 0xC800u16;
+    let f_before = 0xF0u8;
+    cpu.registers.PC = pc_before;
+    cpu.registers.F = f_before;
+    cpu.registers.A = a_before;
+    cpu.registers.set_hl(addr);
+    cpu.bus.write(addr, mem);
+    cpu.bus.write(addr + 1, mem_next);
+    let cycle = cpu.execute(0x2A); // LD A, (HL+)
+
+    assert_eq!(cpu.registers.A, mem, "0x2A: (HL) -> A");
+    assert_eq!(cpu.registers.get_hl(), addr + 1, "0x2A: HL -> HL+1");
+    assert_eq!(cpu.bus.read(addr), mem, "0x2A: (HL) 不変");
+    assert_eq!(cpu.bus.read(addr + 1), mem_next, "0x2A: (HL+1) 不変");
+    assert_eq!(cpu.registers.F, f_before, "0x2A: F 不変");
+    assert_eq!(cpu.registers.PC, pc_before, "0x2A: PC 不変");
+    assert_eq!(cycle, 8, "0x2A: cycle -> 8");
+}
+
+#[test]
+fn ld_hl_dec_updates_hl() {
+    // === 0x32 (LD (HL-), A) ===
+    let mut cpu = Cpu::new(Bus::new());
+    let addr = 0xC100u16;
+    let a_before = 0x5Au8;
+    let mem_prev = 0xA5u8;
+    let pc_before = 0xC800u16;
+    let f_before = 0xF0u8;
+    cpu.registers.PC = pc_before;
+    cpu.registers.F = f_before;
+    cpu.registers.A = a_before;
+    cpu.registers.set_hl(addr);
+    cpu.bus.write(addr - 1, mem_prev);
+    let cycle = cpu.execute(0x32); // LD (HL-), A
+
+    assert_eq!(cpu.bus.read(addr), a_before, "0x32: A -> (HL)");
+    assert_eq!(cpu.registers.get_hl(), addr - 1, "0x32: HL -> HL-1");
+    assert_eq!(cpu.bus.read(addr - 1), mem_prev, "0x32: (HL-1) 不変");
+    assert_eq!(cpu.registers.A, a_before, "0x32: A 不変");
+    assert_eq!(cpu.registers.F, f_before, "0x32: F 不変");
+    assert_eq!(cpu.registers.PC, pc_before, "0x32: PC 不変");
+    assert_eq!(cycle, 8, "0x32: cycle -> 8");
+
+    // === 0x3A (LD A, (HL-)) ===
+    let mut cpu = Cpu::new(Bus::new());
+    let addr = 0xC200u16;
+    let mem = 0x5Au8;
+    let mem_prev = 0xA5u8;
+    let a_before = 0x3Cu8;
+    let pc_before = 0xC800u16;
+    let f_before = 0xF0u8;
+    cpu.registers.PC = pc_before;
+    cpu.registers.F = f_before;
+    cpu.registers.A = a_before;
+    cpu.registers.set_hl(addr);
+    cpu.bus.write(addr, mem);
+    cpu.bus.write(addr - 1, mem_prev);
+    let cycle = cpu.execute(0x3A); // LD A, (HL-)
+
+    assert_eq!(cpu.registers.A, mem, "0x3A: (HL) -> A");
+    assert_eq!(cpu.registers.get_hl(), addr - 1, "0x3A: HL -> HL-1");
+    assert_eq!(cpu.bus.read(addr), mem, "0x3A: (HL) 不変");
+    assert_eq!(cpu.bus.read(addr - 1), mem_prev, "0x3A: (HL-1) 不変");
+    assert_eq!(cpu.registers.F, f_before, "0x3A: F 不変");
+    assert_eq!(cpu.registers.PC, pc_before, "0x3A: PC 不変");
+    assert_eq!(cycle, 8, "0x3A: cycle -> 8");
 }
 
 #[ignore]
