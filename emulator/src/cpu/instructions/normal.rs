@@ -1456,7 +1456,7 @@ impl Cpu {
                 self.registers.PC = 0x0038;
                 16
             },
-            _ => panic!("未実装のオペコードです: 0x{:02X}", opcode),
+            _ => panic!("未定義のオペコードです: 0x{:02X}", opcode),
         }
     }
 }

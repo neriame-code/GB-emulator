@@ -11,6 +11,11 @@ fn nop_costs_4_cycles() {
 #[test]
 fn stop_consumes_one_operand_byte() {
     let mut cpu = Cpu::new(Bus::new());
+    let start = 0xC100u16;
+    cpu.registers.PC = start; // wram
+    let cycle = cpu.execute(0x10); // STOP
+    assert_eq!(cpu.registers.PC, start+1, "STOP -> PC+1");
+    assert_eq!(cycle, 4, "cycle -> 4");
 }
 
 #[ignore]
@@ -32,9 +37,12 @@ fn ei_sets_pending_not_ime() {
 }
 
 #[test]
-#[should_panic(expected = "未実装のオペコードです")]
+#[should_panic(expected = "未定義のオペコードです")]
 fn undefined_opcode_panics() {
+    // 未定義は次の通り。代表値のみをテストする。パニックのテストなのでAssertは書かない
+    // 0xD3  0xDB  0xDD  0xE3  0xE4  0xEB  0xEC  0xED  0xF4  0xFC  0xFD
     let mut cpu = Cpu::new(Bus::new());
+    cpu.execute(0xDD);
 }
 
 // ==================== 8bitロード ====================
