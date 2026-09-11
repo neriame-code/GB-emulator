@@ -354,6 +354,22 @@ fn push_pop_all_pairs() {
 #[test]
 fn pop_af_masks_lower_nibble() {
     let mut cpu = new_cpu();
+    let sp_before = 0xCF00u16;
+    let mem = 0x5Au8;
+    let mem_next = 0xA5u8;
+    let a_before = 0x3Cu8;
+    cpu.registers.A = a_before;
+    cpu.registers.SP = sp_before;
+    cpu.bus.write(sp_before, mem);
+    cpu.bus.write(sp_before + 1, mem_next);
+    let cycle = cpu.execute(0xF1); // POP AF
+
+    assert_eq!(cpu.registers.F, 0x50, "(SP) -> F 下位ニブルは0"); // mem&0xF0 = 0x50
+    assert_eq!(cpu.registers.A, mem_next, "(SP+1) -> A");
+    assert_eq!(cpu.registers.SP, sp_before + 2, "SP -> SP+2");
+    assert_eq!(cpu.bus.read(sp_before), mem, "(SP) 不変");
+    assert_eq!(cpu.registers.PC, PC_BEFORE, "PC 不変");
+    assert_eq!(cycle, 12, "cycle");
 }
 
 // ==================== 8bit算術論理 ====================
