@@ -16,6 +16,12 @@ fn new_cpu() -> Cpu{
     cpu
 }
 
+#[track_caller]
+fn assert_pc_and_cycle(cpu: &Cpu, opcode: u8, expect_pc: u16, cycle: u8, expect_cycle: u8) {
+    assert_eq!(cpu.registers.PC, expect_pc, "0x{:02X}: PC", opcode);
+    assert_eq!(cycle, expect_cycle, "0x{:02X}: cycle", opcode);
+}
+
 fn reg_get(cpu: &Cpu, i: u8) -> u8 {
     match i {
         0 => cpu.registers.B,
@@ -54,11 +60,11 @@ fn nop_costs_4_cycles() {
 #[test]
 fn stop_consumes_one_operand_byte() {
     let mut cpu = new_cpu();
-    let cycle = cpu.execute(0x10); // STOP
+    let opcode = 0x10u8;
+    let cycle = cpu.execute(opcode); // STOP
 
     assert_eq!(cpu.registers.F, F_BEFORE, "F 不変");
-    assert_eq!(cpu.registers.PC, PC_BEFORE + 1, "PC -> PC+1");
-    assert_eq!(cycle, 4, "cycle -> 4");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE + 1, cycle, 4);
 }
 
 #[ignore]
@@ -85,7 +91,8 @@ fn undefined_opcode_panics() {
     // 未定義は次の通り。代表値のみをテストする。パニックのテストなのでAssertは書かない
     // 0xD3  0xDB  0xDD  0xE3  0xE4  0xEB  0xEC  0xED  0xF4  0xFC  0xFD
     let mut cpu = new_cpu();
-    cpu.execute(0xDD);
+    let opcode = 0xDD;
+    cpu.execute(opcode);
 }
 
 // ==================== 8bitロード ====================
@@ -93,18 +100,18 @@ fn undefined_opcode_panics() {
 fn ld_r_n_loads_immediate() {
     // LD命令の代表として LD B, n を用いる
     let mut cpu = new_cpu();
+    let opcode = 0x06u8;
     let n = 0x5Au8;
     let b_before = 0x3Cu8;
     let f_before = 0xF0u8;
     cpu.bus.write(PC_BEFORE, n);
     cpu.registers.B = b_before;
     cpu.registers.F = f_before;
-    let cycle = cpu.execute(0x06); // LD B, n
+    let cycle = cpu.execute(opcode); // LD B, n
 
     assert_eq!(cpu.registers.B, n, "n -> B");
     assert_eq!(cpu.registers.F, f_before, "F 不変");
-    assert_eq!(cpu.registers.PC, PC_BEFORE + 1, "PC -> PC+1 (即値1バイト)");
-    assert_eq!(cycle, 8, "cycle -> 8");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE + 1, cycle, 8);
 }
 
 #[ignore]
@@ -149,8 +156,7 @@ fn ld_r_r_all_opcodes() {
             assert_eq!(reg_get(&cpu, i), expect, "0x{:02X}: sss -> ddd (index: {:02X})", opcode, i);
         }
         assert_eq!(cpu.registers.F, f_before, "0x{:02X}: F 不変", opcode);
-        assert_eq!(cpu.registers.PC, PC_BEFORE, "0x{:02X}: PC 不変", opcode);
-        assert_eq!(cycle, 4, "0x{:02X}: cycle -> 4", opcode);
+        assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
         count += 1;
     }
     assert_eq!(count, 49, "count -> 49");
@@ -210,8 +216,7 @@ fn ld_hl_inc_updates_hl() {
     assert_eq!(cpu.bus.read(addr + 1), mem_next, "0x{:02X}: (HL+1) 不変", opcode);
     assert_eq!(cpu.registers.A, a_before, "0x{:02X}: A 不変", opcode);
     assert_eq!(cpu.registers.F, F_BEFORE, "0x{:02X}: F 不変", opcode);
-    assert_eq!(cpu.registers.PC, PC_BEFORE, "0x{:02X}: PC 不変", opcode);
-    assert_eq!(cycle, 8, "0x{:02X}: cycle -> 8", opcode);
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 8);
 
     // === 0x2A (LD A, (HL+)) ===
     let mut cpu = new_cpu();
@@ -231,8 +236,7 @@ fn ld_hl_inc_updates_hl() {
     assert_eq!(cpu.bus.read(addr), mem, "0x{:02X}: (HL) 不変", opcode);
     assert_eq!(cpu.bus.read(addr + 1), mem_next, "0x{:02X}: (HL+1) 不変", opcode);
     assert_eq!(cpu.registers.F, F_BEFORE, "0x{:02X}: F 不変", opcode);
-    assert_eq!(cpu.registers.PC, PC_BEFORE, "0x{:02X}: PC 不変", opcode);
-    assert_eq!(cycle, 8, "0x{:02X}: cycle -> 8", opcode);
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 8);
 }
 
 #[test]
@@ -253,8 +257,7 @@ fn ld_hl_dec_updates_hl() {
     assert_eq!(cpu.bus.read(addr - 1), mem_prev, "0x{:02X}: (HL-1) 不変", opcode);
     assert_eq!(cpu.registers.A, a_before, "0x{:02X}: A 不変", opcode);
     assert_eq!(cpu.registers.F, F_BEFORE, "0x{:02X}: F 不変", opcode);
-    assert_eq!(cpu.registers.PC, PC_BEFORE, "0x{:02X}: PC 不変", opcode);
-    assert_eq!(cycle, 8, "0x{:02X}: cycle -> 8", opcode);
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 8);
 
     // === 0x3A (LD A, (HL-)) ===
     let mut cpu = new_cpu();
@@ -274,8 +277,7 @@ fn ld_hl_dec_updates_hl() {
     assert_eq!(cpu.bus.read(addr), mem, "0x{:02X}: (HL) 不変", opcode);
     assert_eq!(cpu.bus.read(addr - 1), mem_prev, "0x{:02X}: (HL-1) 不変", opcode);
     assert_eq!(cpu.registers.F, F_BEFORE, "0x{:02X}: F 不変", opcode);
-    assert_eq!(cpu.registers.PC, PC_BEFORE, "0x{:02X}: PC 不変", opcode);
-    assert_eq!(cycle, 8, "0x{:02X}: cycle -> 8", opcode);
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 8);
 }
 
 #[ignore]
@@ -354,6 +356,7 @@ fn push_pop_all_pairs() {
 #[test]
 fn pop_af_masks_lower_nibble() {
     let mut cpu = new_cpu();
+    let opcode = 0xF1;
     let sp_before = 0xCF00u16;
     let mem = 0x5Au8;
     let mem_next = 0xA5u8;
@@ -362,20 +365,43 @@ fn pop_af_masks_lower_nibble() {
     cpu.registers.SP = sp_before;
     cpu.bus.write(sp_before, mem);
     cpu.bus.write(sp_before + 1, mem_next);
-    let cycle = cpu.execute(0xF1); // POP AF
+    let cycle = cpu.execute(opcode); // POP AF
 
     assert_eq!(cpu.registers.F, 0x50, "(SP) -> F 下位ニブルは0"); // mem&0xF0 = 0x50
     assert_eq!(cpu.registers.A, mem_next, "(SP+1) -> A");
     assert_eq!(cpu.registers.SP, sp_before + 2, "SP -> SP+2");
     assert_eq!(cpu.bus.read(sp_before), mem, "(SP) 不変");
-    assert_eq!(cpu.registers.PC, PC_BEFORE, "PC 不変");
-    assert_eq!(cycle, 12, "cycle");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 12);
 }
 
 // ==================== 8bit算術論理 ====================
 #[test]
 fn add_a_b_sum_and_zero() {
+    // === 繰り上がりなし ===
     let mut cpu = new_cpu();
+    let opcode = 0x80u8;
+    let a_before = 0x5Au8;
+    let b_before = 0x3Cu8; // a+b = 0x96
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    let cycle = cpu.execute(opcode); // ADD A, B
+
+    assert_eq!(cpu.registers.A, 0x96, "A + B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x20, "ZNHC -> 0010");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
+
+    // === 繰り上がりあり ===
+    let mut cpu = new_cpu();
+    let b_before = 0xA6u8; // a+b = 0x00
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    let cycle = cpu.execute(opcode); // ADD A, B
+
+    assert_eq!(cpu.registers.A, 0x00, "A + B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0xB0, "ZNHC -> 1011");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[test]
