@@ -1,5 +1,3 @@
-use std::iter::Cycle;
-
 use crate::cpu::{Cpu, registers::Flag};
 use crate::bus::Bus;
 
@@ -446,9 +444,9 @@ fn add_a_b_carry() {
     cpu.registers.B = b_before;
     let cycle = cpu.execute(opcode);
 
-    assert_eq!(cpu.registers.F, 0x10, "ZNHC -> 0001");
     assert_eq!(cpu.registers.A, 0x68, "A + B -> A");
     assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x10, "ZNHC -> 0001");
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 
     // === Cが立たない ===
@@ -458,28 +456,68 @@ fn add_a_b_carry() {
     cpu.registers.B = b_before; // a+b = 0xFF
     let cycle = cpu.execute(opcode);
 
-    assert_eq!(cpu.registers.F, 0x00, "ZNHC -> 0000");
     assert_eq!(cpu.registers.A, 0xFF, "A + B -> A");
     assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x00, "ZNHC -> 0000");
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn adc_a_b_adds_carry_in() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x88u8; // ADC A, B
+    let a_before = 0x5Au8;
+    let b_before = 0x3Cu8; // a+b+c = 0x96+1
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x97, "A + B + C -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x20, "ZNHC -> 0010");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn adc_a_b_half_carry_includes_carry_in() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x88u8; // ADC A, B
+    let a_before = 0x5Au8;
+    let b_before = 0xA5u8; // a+b+c = 0x00
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    let cycle = cpu.execute(opcode);
+
+    assert!(cpu.registers.get_flag(Flag::H), "carry_inでHが立つ");
+    assert_eq!(cpu.registers.A, 0x00, "A + B + C -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0xB0, "ZNHC -> 1011");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn adc_a_b_without_carry_matches_add() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x80u8; // ADD A, B
+    let a_before = 0x5Au8;
+    let b_before = 0xA5u8; // a+b = 0xFF
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    cpu.execute(opcode); // まずはADDの結果を保存(比較のため)
+    let a_after_add = cpu.registers.A;
+    let f_after_add = cpu.registers.F;
+
+    let mut cpu = new_cpu();
+    let opcode = 0x88u8; // ADC A, B
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    cpu.registers.set_flag(Flag::C, false); // Cのフラグを下げる
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, a_after_add, "C=0においてADDと同等");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, f_after_add, "ZNHC ADDと同等");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[ignore = "次にやる"]
