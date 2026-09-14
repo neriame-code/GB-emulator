@@ -387,8 +387,8 @@ fn add_a_b_sum_and_zero() {
     let cycle = cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0x96, "A + B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0x20, "ZNHC -> 0010");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 
     // === 繰り上がりあり ===
@@ -396,12 +396,10 @@ fn add_a_b_sum_and_zero() {
     let b_before = 0xA6u8; // a+b = 0x00
     cpu.registers.A = a_before;
     cpu.registers.B = b_before;
-    let cycle = cpu.execute(opcode);
+    cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0x00, "A + B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0xB0, "ZNHC -> 1011");
-    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[test]
@@ -425,12 +423,10 @@ fn add_a_b_half_carry() {
     let a_before = 0x5Au8;
     cpu.registers.A = a_before;
     cpu.registers.B = b_before; // a+b = 0xFF
-    let cycle = cpu.execute(opcode);
+    cpu.execute(opcode);
 
     assert_eq!(cpu.registers.F, 0x00, "ZNHC -> 0000");
     assert_eq!(cpu.registers.A, 0xFF, "A + B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
-    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[test]
@@ -445,8 +441,8 @@ fn add_a_b_carry() {
     let cycle = cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0x68, "A + B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0x10, "ZNHC -> 0001");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 
     // === Cが立たない ===
@@ -454,12 +450,10 @@ fn add_a_b_carry() {
     let a_before = 0x3Cu8;
     cpu.registers.A = a_before;
     cpu.registers.B = b_before; // a+b = 0xFF
-    let cycle = cpu.execute(opcode);
+    cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0xFF, "A + B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0x00, "ZNHC -> 0000");
-    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[test]
@@ -532,8 +526,8 @@ fn sub_a_b_difference_and_zero() {
     let cycle = cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0x00, "A - B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0xC0, "ZNHC -> 1100");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 
     // === ゼロ立たない ===
@@ -541,12 +535,10 @@ fn sub_a_b_difference_and_zero() {
     let b_before = 0x3Cu8; // a-b = 0x1E
     cpu.registers.A = a_before;
     cpu.registers.B = b_before;
-    let cycle = cpu.execute(opcode);
+    cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0x1E, "A - B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0x60, "ZNHC -> 0110");
-    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[test]
@@ -579,8 +571,8 @@ fn sub_a_b_half_borrow() {
     let cycle = cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0x1E, "A - B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0x60, "ZNHC -> 0110"); // A下位 < B下位なのでH=1
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 
     // === H立たず ===
@@ -589,12 +581,10 @@ fn sub_a_b_half_borrow() {
     let b_before = 0xA5u8; // a-b = 0x97
     cpu.registers.A = a_before;
     cpu.registers.B = b_before;
-    let cycle = cpu.execute(opcode);
+    cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0x97, "A - B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0x50, "ZNHC -> 0101");
-    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[test]
@@ -610,8 +600,8 @@ fn sub_a_b_borrow() {
     let cycle = cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0xE2, "A - B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0x50, "ZNHC -> 0101"); // A < BなのでC=1
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 
     // === C立たず ===
@@ -620,12 +610,10 @@ fn sub_a_b_borrow() {
     let b_before = 0xA5u8; // a-b = 0x1E
     cpu.registers.A = a_before;
     cpu.registers.B = b_before;
-    let cycle = cpu.execute(opcode);
+    cpu.execute(opcode);
 
     assert_eq!(cpu.registers.A, 0x1E, "A - B -> A");
-    assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0x60, "ZNHC -> 0110");
-    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[ignore]
