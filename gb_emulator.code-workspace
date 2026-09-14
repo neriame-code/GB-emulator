@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "rust-analyzer.linkedProjects": [
+      "emulator/Cargo.toml"
+    ],
+    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.files.excludeDirs": [
+      "emulator/target"
+    ]
+  }
+}
