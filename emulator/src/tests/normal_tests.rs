@@ -634,10 +634,21 @@ fn and_a_b_result_and_zero() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn and_a_b_sets_half_carry_clears_carry() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0xA0u8; // AND A, B
+    let a_before = 0x5Au8;
+    let b_before = 0x3Cu8; // a&b = 0x18
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    cpu.registers.set_flag(Flag::H, false); // Hのフラグを下げる
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x18, "A & B -> A");
+    assert_eq!(cpu.registers.F, 0x20, "ZNHC -> 0010"); // 入力問わずH=1, C=0
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[ignore]
@@ -664,10 +675,20 @@ fn xor_a_b_clears_n_h_c() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn cp_a_b_does_not_modify_a() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0xB8u8; // CP A, B
+    let a_before = 0x5Au8;
+    let b_before = 0x3Cu8; // a-b = 0x1E
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, a_before, "A 不変"); // subと同じフラグ変化だが書き込まない
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x60, "ZNHC -> 0110"); // 入力問わずH=1, C=0
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[ignore]
