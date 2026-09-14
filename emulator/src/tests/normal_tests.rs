@@ -3,7 +3,7 @@ use crate::bus::Bus;
 
 // ==================== テストで利用する定数/関数 ====================
 const PC_BEFORE: u16 = 0xC800;   // 命令列の位置（データ用アドレスと区別）
-const F_BEFORE:  u8  = 0xF0;     // 下位4bitは実機で常に0
+const F_BEFORE:  u8  = 0xF0;     // 下位4bitは実機で常に0 (ZNHC -> 1111)
 const POISON:    u8  = 0xEE;     // 読まれても書かれてもいけない値
 const POISON16:  u16 = 0xEEEE;
 const REG_INIT: [u8; 8] = [0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, POISON, 0xB7];
@@ -488,7 +488,6 @@ fn adc_a_b_half_carry_includes_carry_in() {
     cpu.registers.B = b_before;
     let cycle = cpu.execute(opcode);
 
-    assert!(cpu.registers.get_flag(Flag::H), "carry_inでHが立つ");
     assert_eq!(cpu.registers.A, 0x00, "A + B + C -> A");
     assert_eq!(cpu.registers.B, b_before, "B 不変");
     assert_eq!(cpu.registers.F, 0xB0, "ZNHC -> 1011");
@@ -520,28 +519,113 @@ fn adc_a_b_without_carry_matches_add() {
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn sub_a_b_difference_and_zero() {
-    todo!()
+    // === ゼロ立つ ===
+    let mut cpu = new_cpu();
+    let opcode = 0x90u8; // SUB A, B
+    let a_before = 0x5Au8;
+    let b_before = 0x5Au8; // a-b = 0x00
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    cpu.registers.set_flag(Flag::Z, false); // Zのフラグを下げる
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x00, "A - B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0xC0, "ZNHC -> 1100");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
+
+    // === ゼロ立たない ===
+    let mut cpu = new_cpu();
+    let b_before = 0x3Cu8; // a-b = 0x1E
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x1E, "A - B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x60, "ZNHC -> 0110");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn sub_a_b_sets_n_flag() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x90u8; // SUB A, B
+    let a_before = 0x5Au8;
+    let b_before = 0x3Cu8; // a-b = 0x1E
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    cpu.registers.set_flag(Flag::N, false); // 規定は1なので明示的に下げる
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x1E, "A - B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x60, "ZNHC -> 0110"); // SUBなのでN=1
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn sub_a_b_half_borrow() {
-    todo!()
+    // === H立ち ===
+    let mut cpu = new_cpu();
+    let opcode = 0x90u8; // SUB A, B
+    let a_before = 0x5Au8;
+    let b_before = 0x3Cu8; // a-b = 0x1E
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    cpu.registers.set_flag(Flag::H, false); // Hのフラグを下げる
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x1E, "A - B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x60, "ZNHC -> 0110"); // A下位 < B下位なのでH=1
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
+
+    // === H立たず ===
+    let mut cpu = new_cpu();
+    let a_before = 0x3Cu8;
+    let b_before = 0xA5u8; // a-b = 0x97
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x97, "A - B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x50, "ZNHC -> 0101");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn sub_a_b_borrow() {
-    todo!()
+    // === C立ち ===
+    let mut cpu = new_cpu();
+    let opcode = 0x90u8; // SUB A, B
+    let a_before = 0xA5u8;
+    let b_before = 0xC3u8; // a-b = 0xE2
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    cpu.registers.set_flag(Flag::C, false); // Cのフラグを下げる
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0xE2, "A - B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x50, "ZNHC -> 0101"); // A < BなのでC=1
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
+
+    // === C立たず ===
+    let mut cpu = new_cpu();
+    let a_before = 0xC3u8;
+    let b_before = 0xA5u8; // a-b = 0x1E
+    cpu.registers.A = a_before;
+    cpu.registers.B = b_before;
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x1E, "A - B -> A");
+    assert_eq!(cpu.registers.B, b_before, "B 不変");
+    assert_eq!(cpu.registers.F, 0x60, "ZNHC -> 0110");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[ignore]
