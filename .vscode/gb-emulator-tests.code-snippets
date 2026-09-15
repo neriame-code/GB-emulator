@@ -2,7 +2,7 @@
   "GB: 命令テスト骨格 (Arrange/Act/Assert)": {
     "scope": "rust",
     "prefix": "init",
-    "description": "1命令ぶんのテスト関数の型。中身は自分で埋める",
+    "description": "1命令ぶんのテスト関数の型",
     "body": [
       "    let mut cpu = new_cpu();",
       "    let opcode = ${2:0x00}u8; // ${3:MNEMONIC}",
@@ -16,7 +16,7 @@
   "GB: 未実装テストのスタブ (todo!)": {
     "scope": "rust",
     "prefix": "todo",
-    "description": "名前だけ決めて中身は後で書く、未着手テストの置き場",
+    "description": "テスト置き場(名前だけ決めて中身は後で書く)",
     "body": [
       "#[ignore]",
       "#[test]",
@@ -29,7 +29,7 @@
   "GB: assert_eq! (実際, 期待)": {
     "scope": "rust",
     "prefix": "ae",
-    "description": "引数順(実際,期待)と16進メッセージを固定した assert の型",
+    "description": "assert の型",
     "body": [
       "assert_eq!(${1:actual}, ${2:expect}, \"${3:from} -> ${4:to}\");"
     ]
@@ -38,7 +38,7 @@
   "GB: 複数opcodeブロックの区切り": {
     "scope": "rust",
     "prefix": "bl",
-    "description": "対になる命令を1テストにまとめる際のブロック先頭。opcodeをリンクして表記ゆれを防ぐ",
+    "description": "1テストにまとめる際のブロック先頭",
     "body": [
       "// === ${1:0xXX} (${2:MNEMONIC}) ===",
     ]
@@ -47,7 +47,7 @@
   "GB: CPUレジスタ": {
     "scope": "rust",
     "prefix": "cr",
-    "description": "cpu.registers",
+    "description": "cpu.registersの略記",
     "body": [
       "cpu.registers.",
     ]

@@ -1,3 +1,5 @@
+use core::arch;
+
 use crate::cpu::{Cpu, registers::Flag};
 use crate::bus::Bus;
 
@@ -869,10 +871,20 @@ fn inc_dec_hl_indirect_updates_memory() {
 }
 
 // ==================== 16bit算出命令 ====================
-#[ignore = "次にやる"]
 #[test]
 fn add_hl_rr_half_carry_at_bit11() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x09u8; // ADD HL, BC
+    let hl_before = 0x0A5Au16;
+    let bc_before = 0x06A5u16; // hl+bc = 0x10FF
+    cpu.registers.set_hl(hl_before);
+    cpu.registers.set_bc(bc_before);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.get_hl(), 0x10FF, "HL + BC -> HL");
+    assert_eq!(cpu.registers.get_bc(), bc_before, "BC 不変");
+    assert_eq!(cpu.registers.F, 0xA0, "ZNHC -> 1010"); // bit11でHが立つ
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 8);
 }
 
 #[ignore]
@@ -881,10 +893,21 @@ fn add_hl_rr_carry_at_bit15() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn add_hl_rr_preserves_zero_flag() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x09u8; // ADD HL, BC
+    let hl_before = 0xFFFFu16;
+    let bc_bofore = 0x0001u16; // hl+bc = 0x0000
+    cpu.registers.set_hl(hl_before);
+    cpu.registers.set_bc(bc_bofore);
+    cpu.registers.set_flag(Flag::Z, false);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.get_hl(), 0x0000, "HL + BC -> HL");
+    assert_eq!(cpu.registers.get_bc(), bc_bofore, "BC 不変");
+    assert_eq!(cpu.registers.F, 0x30, "ZNHC -> 0011"); // 0でもZ保持
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 8);
 }
 
 #[ignore]
