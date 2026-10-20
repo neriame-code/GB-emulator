@@ -898,14 +898,14 @@ fn add_hl_rr_preserves_zero_flag() {
     let mut cpu = new_cpu();
     let opcode = 0x09u8; // ADD HL, BC
     let hl_before = 0xFFFFu16;
-    let bc_bofore = 0x0001u16; // hl+bc = 0x0000
+    let bc_before = 0x0001u16; // hl+bc = 0x0000
     cpu.registers.set_hl(hl_before);
-    cpu.registers.set_bc(bc_bofore);
+    cpu.registers.set_bc(bc_before);
     cpu.registers.set_flag(Flag::Z, false);
     let cycle = cpu.execute(opcode);
 
     assert_eq!(cpu.registers.get_hl(), 0x0000, "HL + BC -> HL");
-    assert_eq!(cpu.registers.get_bc(), bc_bofore, "BC 不変");
+    assert_eq!(cpu.registers.get_bc(), bc_before, "BC 不変");
     assert_eq!(cpu.registers.F, 0x30, "ZNHC -> 0011"); // 0でもZ保持
     assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 8);
 }
@@ -953,40 +953,102 @@ fn add_sp_e_negative_offset() {
 }
 
 // ==================== ローテート, フラグ操作 ====================
-#[ignore = "次にやる"]
 #[test]
 fn rlca_rotates_left_through_bit7() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x07u8; // RLCA
+    let a_before = 0xA5u8;
+    cpu.registers.A = a_before;
+    cpu.registers.set_flag(Flag::C, false);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x4Bu8, "A << 1"); // 0b1010_0101 -> 0b0100_1011 (Aのみで環状)
+    assert_eq!(cpu.registers.F, 0x10u8, "ZNHC -> 0001");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn rrca_rotates_right_through_bit0() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x0Fu8; // RRCA
+    let a_before = 0xA5u8;
+    cpu.registers.A = a_before;
+    cpu.registers.set_flag(Flag::C, false);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0xD2u8, "A >> 1"); // 0b1010_0101 -> 0b1101_0010 (Aのみで環状)
+    assert_eq!(cpu.registers.F, 0x10u8, "ZNHC -> 0001");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn rla_shifts_carry_in_to_bit0() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x17u8; // RLA
+    let a_before = 0x5Au8;
+    cpu.registers.A = a_before;
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0xB5u8, "A << 1"); // (C:1)0b0101_1010 -> (C:0)0b1011_0101 (C込みで環状)
+    assert_eq!(cpu.registers.F, 0x00u8, "ZNHC -> 0000");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn rra_shifts_carry_in_to_bit7() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x1Fu8; // RRA
+    let a_before = 0x5Au8;
+    cpu.registers.A = a_before;
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0xADu8, "A >> 1"); // (C:1)0b0101_1010 -> (C:0)0b1010_1101 (C込みで環状)
+    assert_eq!(cpu.registers.F, 0x00u8, "ZNHC -> 0000");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn rotate_a_always_clears_zero() {
-    todo!()
+    // === 0x17 (RLA) ===
+    let mut cpu = new_cpu();
+    let opcode = 0x17u8; // RLA
+    let a_before = 0x80u8;
+    cpu.registers.A = a_before;
+    cpu.registers.set_flag(Flag::C, false);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.F & 0x80u8, 0x00u8, "0x{:02X}: Z -> 0", opcode);
+    assert_eq!(cpu.registers.A, 0x00u8, "0x{:02X}: A -> 0", opcode); // 押し出されるため
+    assert_eq!(cpu.registers.F, 0x10u8, "0x{:02X}: ZNHC -> 0001", opcode);
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
+
+    // === 0x1F (RRA) ===
+    let mut cpu = new_cpu();
+    let opcode = 0x1Fu8; // RRA
+    let a_before = 0x01u8;
+    cpu.registers.A = a_before;
+    cpu.registers.set_flag(Flag::C, false);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.F & 0x80u8, 0x00u8, "0x{:02X}: Z -> 0", opcode);
+    assert_eq!(cpu.registers.A, 0x00u8, "0x{:02X}: A -> 0", opcode); // 押し出されるため
+    assert_eq!(cpu.registers.F, 0x10u8, "0x{:02X}: ZNHC -> 0001", opcode);
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn daa_after_addition() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x27u8; // DAA
+    let a_before = 0x41u8;
+    cpu.registers.A = a_before;
+    cpu.registers.set_flags(true, false, true, false);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.A, 0x47u8, "A + 0x06 -> A"); // 19+28=47
+    assert_eq!(cpu.registers.F & 0x20u8, 0x00u8, "H -> 0");
+    assert_eq!(cpu.registers.F, 0x00u8, "ZNHC -> 0000");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE, cycle, 4);
 }
 
 #[ignore]
