@@ -13,7 +13,7 @@
 | `cpu/registers.rs` | ✅ 完成（AF/BC/DE/HL、フラグ操作、`Registers::new()`） |
 | `cpu/instructions/normal.rs` | ✅ 245命令すべて実装済み（未定義11個を除き全網羅） |
 | `cpu/instructions/cb.rs` | ⚠️ `todo!()` スタブ1行。中身はこれから（→ 6.1） |
-| `cpu/mod.rs` | ⚠️ `Cpu::new()` / `fetch_byte` / `fetch_word`。`step()` と割り込みは未実装（→ 6.2） |
+| `cpu/mod.rs` | ⚠️ `Cpu::new()` / `fetch_byte` / `fetch_word`。`step()` と割り込みは未実装（→ 6.3） |
 | `bus.rs` | ✅ **完成**（64KB全域のマッピング + `Bus::new()`。検証済み） |
 | `tests/bus_tests.rs` | ✅ **完成**（22本。ミューテーションテストで検出力を実測済み → 4.5） |
 | `mmu/` `ppu/` `timer/` `input/` `rom.rs` `emulator.rs` | ❌ 空ファイル |
@@ -607,6 +607,27 @@ opcode表は `docs/CB_SPECIFICATION.md` に残っているので情報は失わ�
 
 ## 6. その後のロードマップ
 
+### 6.0 進める順序
+
+```
+[ ] 1. 残りの手書きテストのうち ジャンプ / CALL / RET / RST
+[ ] 2. CB命令の実装                      → 6.1
+[ ] 3. CB命令のテスト                    → 6.1
+[ ] 4. 横断テスト（不変条件）4件
+[ ] 5. 残りの命令テスト（分担して作成）   → 6.2
+[ ] 6. Cpu::step() と割り込み            → 6.3
+[ ] 7. MMU + ROMロード → 外部テストROM   → 6.4
+```
+
+**1 を 2 より先にする理由** ― ジャンプ/CALL/RET は既に実装済みのコードに対するテストで、
+`JP cc, nn` の「条件不成立時にオペランドを消費するか」は**修正済みバグの再発防止**にあたる。
+また CALL/RET/RST の「PCをスタックに積んで飛ぶ」は割り込み処理と同じ仕組みなので、
+ここが緑になっていると 6.4 のデバッグで切り分けが1段階減る。
+
+**4 を 3 の後にする理由** ― 横断テストは全opcodeを回すので必ず `0xCB` のアームを通る。
+CB が `todo!()` のままだと panic するため、先に書くと「0xCB だけ除外」という
+特別扱いが要り、**CB実装後にその除外を外し忘れると緑のまま穴が空く**。
+
 ### 6.1 CB命令（`cb.rs`）
 
 **256個を手書きしないこと**が学習ポイント。CB命令のビットパターンには強い規則性がある。
@@ -636,7 +657,64 @@ opcode = 0b_XXXXX_TTT
 > **罠**: `RLC A`（CB 0x07）と normal の `RLCA`（0x07）はフラグが違う。
 > **RLCAはZを常に0**にするが、**CB版のRLC Aは結果に応じてZを立てる**。
 
-### 6.2 `Cpu::step()` と割り込み
+### 6.2 残りの命令テスト ― 分担して作成（手順4の後）
+
+`normal_tests.rs` には `#[ignore]` のまま残る雛形が多数ある。
+全部を手で書くのは、学習効果に対して時間がかかりすぎる。
+**テストの学習価値は本数に比例しない**ので、種類で線を引いて分担する。
+
+| 種別 | 扱い | 理由 |
+|---|---|---|
+| **網羅ループ系**<br>`*_all_registers` `*_all_pairs` `*_all_sources` など | Claude に書かせる | `ld_r_r_all_opcodes` という参照実装が既にある。型が確立済みで学びの残量が少ない |
+| **単純確認系**<br>`and/or/xor/cp` の result・flag、`inc/dec` の派生 | Claude に書かせる | 既に書いた `add/sub` 系の変形でしかない |
+| **境界値・仕様系** | **自分で書く** | 期待値を決める工程そのものが目的 |
+
+自分で書くものの内訳（符号拡張・半キャリー・BCD補正・バイト順）:
+
+```
+ld_hl_sp_e_flags_from_low_byte      ld_hl_sp_e_negative_offset
+add_sp_e_flags_from_low_byte        add_sp_e_negative_offset
+sbc_a_b_half_borrow_includes_carry_in
+daa_after_subtraction               daa_sets_carry_on_upper_adjust
+ld_nn_sp_writes_low_byte_first      jr_e_is_relative_to_next_instruction
+push_bc_stores_high_byte_at_higher_address
+```
+
+「`LD HL, SP+e` のH/Cは下位バイト由来」「`ADD SP, e` の `e` は符号付きなのに
+フラグは符号なし8bit加算として立つ」あたりは、**自分で期待値を決めないと頭に入らない**。
+
+#### 守ること
+
+**緑になっただけでは終わっていない。** 他人が書いたテストが一発で通った場合、
+得られる情報はゼロ ―― 検出力があるのか、実装と同じ勘違いを共有しているだけなのかが
+区別できない（10章と同じ話）。したがって:
+
+1. **ミューテーションテストは必ず自分でやる。** 実装をわざと1箇所壊し、
+   狙った assert が落ちるか確認する。ここが「読んだ」を「理解した」に変える唯一の工程
+2. **群単位（10〜15本）で回す。** 一気に生成するとレビューが追いつかず「読んだつもり」になる
+3. assert を読む前に**自分で期待値を言ってから答え合わせ**する。
+   コメントを書くのは強制力が弱い（理解していなくても書ける）。ズレた箇所だけが学ぶべき場所
+
+#### 前提作業
+
+`.claude/settings.json`（と `RustProjects/.claude/settings.json`）の `deny` が
+`Edit/Write(emulator/**)` で全面禁止になっている。**deny は allow より優先される**ので、
+許可を足す形では解除できない。blanket deny を**保護したいパスの列挙**
+（`src/cpu/**` `src/*.rs` `src/mmu/**` `src/ppu/**` `src/timer/**` `src/input/**`
+`src/tests/mod.rs` `src/tests/bus_tests.rs` `Cargo.toml` `Cargo.lock`）に
+置き換える必要がある。2ファイルとも要修正。
+
+> 注意: 列挙方式は「書いていないものが通る」ので、`src/` に新しいモジュールを
+> 追加したときは deny への追記を忘れないこと。
+
+#### 外部テストとの関係（代替ではない）
+
+Claude が書くテストは、Pan Docs と `docs/OPCODE SPECIFICATION.md` を読んで期待値を
+決めたもの ―― **情報源は自分で書くときと同じ**。読み違いがあればテストがそれを固定する。
+一方 **SingleStepTests/sm83** は実機の挙動から生成されたデータで、
+どちらも気づいていない仕様を拾える。正確性の担保としてはそちらが一段上（→ 6.4）。
+
+### 6.3 `Cpu::step()` と割り込み
 
 ```
 step():
@@ -650,10 +728,24 @@ step():
 `ei_pending` を「いつ `ime = true` にするか」が難しい。
 **EI命令の次の命令が実行された後**にIMEが立つ、という順序を守る。
 
-### 6.3 MMU + ROMロード → 検証
+### 6.4 MMU + ROMロード → 検証
 
 Blarggの `cpu_instrs` individual test `06-ld r,r.gb` あたりが最初のマイルストーン。
 ただしテストROMはシリアル出力（`0xFF01`/`0xFF02`）経由で結果を出すので、それだけは先に実装が要る。
+
+外部テストには時期の違う2種類がある。
+
+| | 必要なもの | 時期 |
+|---|---|---|
+| **blargg `cpu_instrs`** | `step()` + 割り込み + タイマー + MMU/ROMロード + シリアル出力 | この節 |
+| **SingleStepTests/sm83** | `Cpu::new(Bus)` + `execute()` だけ | **6.3 を待たずに導入できる** |
+
+後者は1命令ごとに「初期レジスタ+メモリ → 実行 → 期待レジスタ+メモリ+サイクル」が
+JSONで入っている。導入時の論点は2つ:
+
+1. JSONパースに `serde` / `serde_json` が `[dev-dependencies]` に要る
+2. テストが任意アドレスに初期値を置くので、**ROM領域への書き込みが無視される現在の `Bus`**
+   だと初期状態を作れない。テスト用の書き込み経路をどう用意するかを設計する必要がある
 
 ---
 

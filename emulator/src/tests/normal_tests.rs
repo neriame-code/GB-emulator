@@ -1094,10 +1094,18 @@ fn jp_cc_nn_taken() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn jp_cc_nn_not_taken_consumes_operand() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0xC2u8; // JP NZ, nn
+    let hi = (POISON16 >> 8 & 0xFF) as u8;
+    let lo = (POISON16 & 0xFF) as u8;
+    cpu.bus.write(PC_BEFORE, lo);
+    cpu.bus.write(PC_BEFORE + 1, hi);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.F, F_BEFORE, "F 不変");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE + 2, cycle, 12);
 }
 
 #[ignore]
@@ -1118,10 +1126,16 @@ fn jr_e_forward() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn jr_e_backward() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x18u8; // JR e
+    let n = 0xA5u8; // -91
+    cpu.bus.write(PC_BEFORE, n); // 0xC800
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.F, F_BEFORE, "F 不変");
+    assert_pc_and_cycle(&cpu, opcode, 0xC7A6, cycle, 12); // (0xC800+1) − 91 = 0xC7A6
 }
 
 #[ignore]
@@ -1130,10 +1144,16 @@ fn jr_e_is_relative_to_next_instruction() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn jr_cc_e_not_taken_consumes_operand() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0x20u8; // JR NZ, e
+    let n = 0xA5u8;
+    cpu.bus.write(PC_BEFORE, n);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.F, F_BEFORE, "F 不変");
+    assert_pc_and_cycle(&cpu, opcode, PC_BEFORE + 1, cycle, 8); 	// e は読むが加算しない
 }
 
 #[ignore]
