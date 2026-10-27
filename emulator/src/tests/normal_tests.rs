@@ -1,5 +1,3 @@
-use core::arch;
-
 use crate::cpu::{Cpu, registers::Flag};
 use crate::bus::Bus;
 
@@ -1169,10 +1167,29 @@ fn call_nn_pushes_return_address() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn call_nn_return_address_points_after_operand() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0xCDu8; // CALL nn
+    let nn = 0x5AA5u16;
+    let hi = (nn >> 8 & 0xFF) as u8;
+    let lo = (nn & 0xFF) as u8;
+    cpu.bus.write(PC_BEFORE, lo);
+    cpu.bus.write(PC_BEFORE + 1, hi);
+    let sp_before = 0xCF00u16;
+    let mm = 0x3Cu8;
+    cpu.registers.SP = sp_before;
+    cpu.bus.write(sp_before, mm);
+    cpu.bus.write(sp_before - 2, POISON);
+    cpu.bus.write(sp_before - 1, POISON);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.bus.read(sp_before - 2), 0x02u8, "PC+2 下位 -> (SP-2)"); // 0xC802 の下位
+    assert_eq!(cpu.bus.read(sp_before - 1), 0xC8u8, "PC+2 上位 -> (SP-1)");
+    assert_eq!(cpu.registers.SP, sp_before - 2, "SP -> SP-2");
+    assert_eq!(cpu.bus.read(sp_before), mm, "(SP) 不変");
+    assert_eq!(cpu.registers.F, F_BEFORE, "F 不変");
+    assert_pc_and_cycle(&cpu, opcode, nn, cycle, 24);
 }
 
 #[ignore]
@@ -1187,10 +1204,24 @@ fn call_cc_all_conditions() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn ret_pops_pc() {
-    todo!()
+    let mut cpu = new_cpu();
+    let opcode = 0xC9u8; // RET
+    let ret_addr = 0x5AA5u16;
+    let hi = (ret_addr >> 8 & 0xFF) as u8;
+    let lo = (ret_addr & 0xFF) as u8;
+    let sp_before = 0xCF00u16;
+    cpu.registers.SP = sp_before;
+    cpu.bus.write(sp_before, lo);
+    cpu.bus.write(sp_before + 1, hi);
+    let cycle = cpu.execute(opcode);
+
+    assert_eq!(cpu.registers.SP, sp_before + 2, "SP -> SP+2");
+    assert_eq!(cpu.bus.read(sp_before), lo, "(SP) 不変");
+    assert_eq!(cpu.bus.read(sp_before + 1), hi, "(SP+1) 不変");
+    assert_eq!(cpu.registers.F, F_BEFORE, "F 不変");
+    assert_pc_and_cycle(&cpu, opcode, ret_addr, cycle, 16);
 }
 
 #[ignore]
@@ -1211,10 +1242,30 @@ fn rst_pushes_and_jumps_to_vector() {
     todo!()
 }
 
-#[ignore = "次にやる"]
 #[test]
 fn rst_all_eight_vectors() {
-    todo!()
+    let hi = (PC_BEFORE >> 8 & 0xFF) as u8;
+    let lo = (PC_BEFORE & 0xFF) as u8;
+    let sp_before = 0xCF00u16;
+    let mut count = 0;
+    for opcode in 0xC0..=0xFF {
+        if (opcode & 0xC7u8) != 0xC7u8 { continue; } // RST n 系命令の両端は11と111で固定
+        let mut cpu = new_cpu();
+        // 真ん中の3bitが飛び先番地を表すので、00111000との論理積をとれば期待する飛び先がわかる
+        let vec = opcode & 0x38u8;
+        cpu.registers.SP = sp_before;
+        cpu.bus.write(sp_before - 2, POISON);
+        cpu.bus.write(sp_before - 1, POISON);
+        let cycle = cpu.execute(opcode);
+
+        assert_eq!(cpu.bus.read(sp_before - 2), lo, "0x{:02X}: PC 下位 -> (SP-2)", opcode);
+        assert_eq!(cpu.bus.read(sp_before - 1), hi, "0x{:02X}: PC 上位 -> (SP-1)", opcode);
+        assert_eq!(cpu.registers.SP, sp_before - 2, "0x{:02X}: SP -> SP-2", opcode);
+        assert_eq!(cpu.registers.F, F_BEFORE, "0x{:02X}: F 不変", opcode);
+        assert_pc_and_cycle(&cpu, opcode, vec as u16, cycle, 16);
+        count += 1;
+    }
+    assert_eq!(count, 8, "全RST命令の数は8");
 }
 
 // ==================== 横断 ====================
