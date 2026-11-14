@@ -36,7 +36,7 @@ impl Cpu {
             0x07 => { // RLCA
                 let temp = self.registers.A >> 7;
                 self.registers.A = self.registers.A << 1 | temp;
-                self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
+                self.registers.set_flags(false, false, false, temp != 0);
                 4
             },
             0x08 => { // LD (nn), SP
@@ -77,7 +77,7 @@ impl Cpu {
             0x0F => { // RRCA
                 let temp = self.registers.A & 0x01;
                 self.registers.A = self.registers.A >> 1 | temp << 7;
-                self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
+                self.registers.set_flags(false, false, false, temp != 0);
                 4
             },
             0x10 => { // STOP
@@ -113,7 +113,7 @@ impl Cpu {
             0x17 => { // RLA
                 let temp = self.registers.A >> 7;
                 self.registers.A = self.registers.A << 1 | self.registers.get_flag(Flag::C) as u8;
-                self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
+                self.registers.set_flags(false, false, false, temp != 0);
                 4
             },
             0x18 => { // JR e
@@ -153,7 +153,7 @@ impl Cpu {
             0x1F => { // RRA
                 let temp = self.registers.A & 0x01;
                 self.registers.A = self.registers.A >> 1 | (self.registers.get_flag(Flag::C) as u8) << 7;
-                self.registers.update_flags(Some(false), Some(false), Some(false), Some(temp != 0));
+                self.registers.set_flags(false, false, false, temp != 0);
                 4
             },
             0x20 => { // JR NZ, e
